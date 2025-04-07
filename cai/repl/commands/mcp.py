@@ -50,7 +50,6 @@ def debug_print(*args, **kwargs):
         escaped_args = []
         for arg in args:
             if isinstance(arg, str):
-                # Escape square brackets to prevent Rich markup interpretation
                 escaped_arg = arg.replace("[", "\\[").replace("]", "\\]")
                 escaped_args.append(escaped_arg)
             else:
@@ -413,7 +412,7 @@ class McpCommand(Command):
             description="Manage MCP server connections and tools",
             aliases=["/m"]
         )
-        # HTML-escape angle brackets to prevent parsing errors
+
         self._subcommands = {
             "load": "Connect to an MCP server: load {url} {label}",
             "unload": "Disconnect from an MCP server: unload {label}",
