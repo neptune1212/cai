@@ -415,9 +415,9 @@ class McpCommand(Command):
         )
         # HTML-escape angle brackets to prevent parsing errors
         self._subcommands = {
-            "load": "Connect to an MCP server: load <url> <label>",
-            "unload": "Disconnect from an MCP server: unload <label>",
-            "add": "Add tools from an MCP server to an agent: add <label> <agent_name>",
+            "load": "Connect to an MCP server: load {url} {label}",
+            "unload": "Disconnect from an MCP server: unload {label}",
+            "add": "Add tools from an MCP server to an agent: add {label} {agent_name}",
             "list": "List active MCP connections and tools"
         }
         debug_print("MCP command initialized")
@@ -432,7 +432,7 @@ class McpCommand(Command):
         """Handle the MCP command."""
         debug_print(f"Handling MCP command with args: {args}")
         if not args:
-            console.print("[yellow]Usage: /mcp <subcommand> [options...][/yellow]")
+            console.print("[yellow]Usage: /mcp {subcommand} [options...][/yellow]")
             for subcmd, desc in self._subcommands.items():
                 console.print(f"  [cyan]{subcmd}[/cyan]: {desc}")
             return True
@@ -503,7 +503,7 @@ class McpCommand(Command):
         """Connect to an MCP server using a background thread."""
         debug_print(f"Executing 'load' subcommand with args: {args}")
         if not args or len(args) != 2:
-            console.print("[red]Usage: /mcp load <server_url> <label>[/red]")
+            console.print("[red]Usage: /mcp load {server_url} {label}[/red]")
             return False
 
         mcp, _, _, _ = import_mcp_deps()
@@ -609,7 +609,7 @@ class McpCommand(Command):
         """Disconnect from an MCP server."""
         debug_print(f"Executing 'unload' subcommand with args: {args}")
         if not args or len(args) != 1:
-            console.print("[red]Usage: /mcp unload <label>[/red]")
+            console.print("[red]Usage: /mcp unload {label}[/red]")
             return False
 
         label = args[0]
@@ -653,7 +653,7 @@ class McpCommand(Command):
         """Add tools from MCP server to an agent."""
         debug_print(f"Executing 'add' subcommand with args: {args}")
         if not args or len(args) != 2:
-            console.print("[red]Usage: /mcp add <label> <agent_name>[/red]")
+            console.print("[red]Usage: /mcp add {label} {agent_name}[/red]")
             return False
 
         label, agent_name = args[0], args[1]
