@@ -60,6 +60,7 @@ A lightweight, ergonomic framework for building bug bounty-ready Cybersecurity A
     - [🔹 Human-In-The-Loop (HITL)](#-human-in-the-loop-hitl)
   - [:rocket: Quickstart](#rocket-quickstart)
     - [Environment Variables](#environment-variables)
+    - [MCP](#mcp)
   - [Development](#development)
     - [Contributions](#contributions)
     - [Optional Requirements: caiextensions](#optional-requirements-caiextensions)
@@ -515,6 +516,44 @@ For using private models, you are given a [`.env.example`](.env.example) file. C
 | CAI_WORKSPACE_DIR | Specifies the directory path where the workspace is located |
 
 </details>
+
+### MCP
+
+```bash
+CAI>/mcp load http://localhost:9876/sse burp
+CAI> /mcp add burp redteam_agent
+Adding tools from MCP server 'burp' to agent 'Red Team Agent'...
+                                 Adding tools to Red Team Agent
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Tool                              ┃ Status ┃ Details                                         ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ send_http_request                 │ Added  │ Available as: send_http_request                 │
+│ create_repeater_tab               │ Added  │ Available as: create_repeater_tab               │
+│ send_to_intruder                  │ Added  │ Available as: send_to_intruder                  │
+│ url_encode                        │ Added  │ Available as: url_encode                        │
+│ url_decode                        │ Added  │ Available as: url_decode                        │
+│ base64encode                      │ Added  │ Available as: base64encode                      │
+│ base64decode                      │ Added  │ Available as: base64decode                      │
+│ generate_random_string            │ Added  │ Available as: generate_random_string            │
+│ output_project_options            │ Added  │ Available as: output_project_options            │
+│ output_user_options               │ Added  │ Available as: output_user_options               │
+│ set_project_options               │ Added  │ Available as: set_project_options               │
+│ set_user_options                  │ Added  │ Available as: set_user_options                  │
+│ get_proxy_http_history            │ Added  │ Available as: get_proxy_http_history            │
+│ get_proxy_http_history_regex      │ Added  │ Available as: get_proxy_http_history_regex      │
+│ get_proxy_websocket_history       │ Added  │ Available as: get_proxy_websocket_history       │
+│ get_proxy_websocket_history_regex │ Added  │ Available as: get_proxy_websocket_history_regex │
+│ set_task_execution_engine_state   │ Added  │ Available as: set_task_execution_engine_state   │
+│ set_proxy_intercept_state         │ Added  │ Available as: set_proxy_intercept_state         │
+│ get_active_editor_contents        │ Added  │ Available as: get_active_editor_contents        │
+│ set_active_editor_contents        │ Added  │ Available as: set_active_editor_contents        │
+└───────────────────────────────────┴────────┴─────────────────────────────────────────────────┘
+Added 20 tools from server 'burp' to agent 'Red Team Agent'.
+CAI>/agent 13
+CAI>Create a repeater tab
+```
+
+https://github.com/user-attachments/assets/386a1fd3-3469-4f84-9396-2a5236febe1f
 
 
 ## Development
