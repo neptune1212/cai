@@ -122,7 +122,7 @@ source cai_env/bin/activate && pip3 install -e .
 cp .env.example .env  # edit here your keys/models
 
 # Launch CAI
-cai
+cai  # first launch it can take up to 30 seconds
 ```
 
 ### Ubuntu 24.04
@@ -143,7 +143,7 @@ source cai_env/bin/activate && pip3 install -e .
 cp .env.example .env  # edit here your keys/models
 
 # Launch CAI
-cai
+cai  # first launch it can take up to 30 seconds
 ```
 
 Refer to the [Development](#development) section for dev. install instructions.
