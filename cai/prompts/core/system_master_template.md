@@ -101,9 +101,14 @@ ${reasoning_content}
         netifaces = None
 
     # Gather system info
-    os_name = platform.system()
-    hostname = socket.gethostname()
-    ip_addr = socket.gethostbyname(hostname)
+    try:
+        hostname = socket.gethostname()
+        ip_addr = socket.gethostbyname(hostname)
+        os_name = platform.system()
+    except:
+        hostname = "local0"
+        ip_addr = "127.0.0.1"
+        os_name = "Linux"    
 
     # Retrieve tun0 address if netifaces is installed and tun0 exists
     tun0_addr = None
