@@ -789,11 +789,14 @@ Currently, CAI supports text based information. You can add any extra informatio
 ## Citation
 If you want to cite our work, please use the following format
 ```bibtex
-@cai{paper2025cai,
-    author = {Mayoral-Vilches, Víctor and Navarrete-Lozano, Luis Javier and Sanz, María and Salas, Lidia and Crespo-Álvarez, Martiño},
-    title = {CAI, a framework for building bug bounty-ready Cybersecurity AIs},
-    howpublished = "\url{https://gitlab.com/aliasrobotics/alias_research/cai}",
-    year = {2025}
+@misc{mayoralvilches2025caiopenbugbountyready,
+      title={CAI: An Open, Bug Bounty-Ready Cybersecurity AI},
+      author={Víctor Mayoral-Vilches and Luis Javier Navarrete-Lozano and María Sanz-Gómez and Lidia Salas Espejo and Martiño Crespo-Álvarez and Francisco Oca-Gonzalez and Francesco Balassone and Alfonso Glera-Picón and Unai Ayucar-Carbajo and Endika Gil-Uriarte},
+      year={2025},
+      eprint={2504.06017},
+      archivePrefix={arXiv},
+      primaryClass={cs.CR},
+      url={https://arxiv.org/abs/2504.06017},
 }
 ```
 
