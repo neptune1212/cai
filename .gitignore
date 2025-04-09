@@ -160,3 +160,6 @@ pentestperf
 
 # logging
 .cai
+
+# python env
+cai_env

@@ -6,6 +6,7 @@ from cai.types import Agent
 from cai.tools.reconnaissance.generic_linux_command import generic_linux_command  # noqa
 model = os.getenv('CAI_MODEL', "qwen2.5:14b")
 
+# Define the agent
 one_tool_agent = Agent(
     model=model,
     name="CTF agent",
@@ -45,6 +46,8 @@ one_tool_agent = Agent(
     parallel_tool_calls=False
 )
 
+# Export the agent
+__all__ = ['one_tool_agent']
 
 def transfer_to_one_tool_agent(**kwargs):  # pylint: disable=W0613
     """Transfer to ctf agent.

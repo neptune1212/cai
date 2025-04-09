@@ -2,10 +2,10 @@
 
 <div align="center">
   <p>
-    <a align="center" href="" target="https://supervision.roboflow.com">
+    <a align="center" href="" target="https://github.com/aliasrobotics/CAI">
       <img
         width="100%"
-        src="media/cai.png"
+        src="https://github.com/aliasrobotics/cai/raw/main/media/cai.png"
       >
     </a>
   </p>
@@ -21,8 +21,8 @@
 [![](https://img.shields.io/badge/HTB_"Human_vs_AI"_CTF-750_$-yellow.svg)](https://ctf.hackthebox.com/event/2000/scoreboard)
 
 ## 📦 Package Attributes
-[![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
-[![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
+[![version](https://badge.fury.io/py/cai-framework.svg)](https://badge.fury.io/py/cai-framework)
+[![downloads](https://img.shields.io/pypi/dm/cai-framework)](https://pypistats.org/packages/cai-framework)
 
 
 </div>
