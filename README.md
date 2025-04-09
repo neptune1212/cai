@@ -105,22 +105,23 @@ CAI is built on the following core principles:
 
 ## :nut_and_bolt: Install
 
+```bash
+pip install cai-framework
+```
+
 ### OS X
 ```bash
 brew update && \
     brew install git python@3.12
 
-# Clone CAI's source code
-git clone https://github.com/aliasrobotics/cai && cd cai
-
 # Create virtual environment
 python3.12 -m venv cai_env
 
 # Install the package from the local directory
-source cai_env/bin/activate && pip3 install -e .
+source cai_env/bin/activate && pip install cai-framework
 
-# Generate a .env file and set up
-cp .env.example .env  # edit here your keys/models
+# Generate a .env file and set up with defaults
+echo -e 'OPENAI_API_KEY="sk-1234"\nANTHROPIC_API_KEY=""\nOLLAMA=""\nPROMPT_TOOLKIT_NO_CPR=1' > .env
 
 # Launch CAI
 cai  # first launch it can take up to 30 seconds
@@ -131,17 +132,11 @@ cai  # first launch it can take up to 30 seconds
 sudo apt-get update && \
     sudo apt-get install -y git python3-pip python3.12-venv
 
-# Clone CAI's source code
-git clone https://github.com/aliasrobotics/cai && cd cai
-
-# Create virtual environment
-python3.12 -m venv cai_env
-
 # Install the package from the local directory
-source cai_env/bin/activate && pip3 install -e .
+source cai_env/bin/activate && pip install cai-framework
 
-# Generate a .env file and set up
-cp .env.example .env  # edit here your keys/models
+# Generate a .env file and set up with defaults
+echo -e 'OPENAI_API_KEY="sk-1234"\nANTHROPIC_API_KEY=""\nOLLAMA=""\nPROMPT_TOOLKIT_NO_CPR=1' > .env
 
 # Launch CAI
 cai  # first launch it can take up to 30 seconds
