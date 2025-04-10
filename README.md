@@ -481,9 +481,9 @@ CAI>
 
 That should initialize CAI and provide a prompt to execute any security task you want to perform. The navigation bar at the bottom displays important system information. This information helps you understand your environment while working with CAI.
 
+Here’s a quick [demo video](https://asciinema.org/a/zm7wS5DA2o0S9pu1Tb44pnlvy) to help you get started with CAI. We’ll walk through the basic steps — from launching the tool to running your first AI-powered task in the terminal. Whether you're a beginner or just curious, this guide will show you how easy it is to begin using CAI.
+
 From here on, type on `CAI` and start your security exercise. Best way to learn is by example:
-
-
 
 ### Environment Variables
 For using private models, you are given a [`.env.example`](.env.example) file. Copy it and rename it as `.env`. Fill in your corresponding API keys, and you are ready to use CAI.
@@ -556,7 +556,6 @@ CAI>Create a repeater tab
 
 https://github.com/user-attachments/assets/386a1fd3-3469-4f84-9396-2a5236febe1f
 
-Here’s a quick [demo video](https://asciinema.org/a/zm7wS5DA2o0S9pu1Tb44pnlvy) to help you get started with CAI. We’ll walk through the basic steps — from launching the tool to running your first AI-powered task in the terminal. Whether you're a beginner or just curious, this guide will show you how easy it is to begin using CAI.
 
 ## Development
 
