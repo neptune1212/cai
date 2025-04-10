@@ -556,6 +556,7 @@ CAI>Create a repeater tab
 
 https://github.com/user-attachments/assets/386a1fd3-3469-4f84-9396-2a5236febe1f
 
+Here’s a quick [demo video](https://asciinema.org/a/zm7wS5DA2o0S9pu1Tb44pnlvy) to help you get started with CAI. We’ll walk through the basic steps — from launching the tool to running your first AI-powered task in the terminal. Whether you're a beginner or just curious, this guide will show you how easy it is to begin using CAI.
 
 ## Development
 
