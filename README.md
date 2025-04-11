@@ -776,7 +776,7 @@ If you want to cite our work, please use the following format
 ```bibtex
 @misc{mayoralvilches2025caiopenbugbountyready,
       title={CAI: An Open, Bug Bounty-Ready Cybersecurity AI},
-      author={Víctor Mayoral-Vilches and Luis Javier Navarrete-Lozano and María Sanz-Gómez and Lidia Salas Espejo and Martiño Crespo-Álvarez and Francisco Oca-Gonzalez and Francesco Balassone and Alfonso Glera-Picón and Unai Ayucar-Carbajo and Endika Gil-Uriarte},
+      author={Víctor Mayoral-Vilches and Luis Javier Navarrete-Lozano and María Sanz-Gómez and Lidia Salas Espejo and Martiño Crespo-Álvarez and Francisco Oca-Gonzalez and Francesco Balassone and Alfonso Glera-Picón and Unai Ayucar-Carbajo and Jon Ander Ruiz-Alcalde and Stefan Rass and Martin Pinzger and Endika Gil-Uriarte},
       year={2025},
       eprint={2504.06017},
       archivePrefix={arXiv},
