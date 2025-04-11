@@ -481,7 +481,7 @@ CAI>
 
 That should initialize CAI and provide a prompt to execute any security task you want to perform. The navigation bar at the bottom displays important system information. This information helps you understand your environment while working with CAI.
 
-Here’s a quick [demo video](https://asciinema.org/a/zm7wS5DA2o0S9pu1Tb44pnlvy) to help you get started with CAI. We’ll walk through the basic steps — from launching the tool to running your first AI-powered task in the terminal. Whether you're a beginner or just curious, this guide will show you how easy it is to begin using CAI.
+Here's a quick [demo video](https://asciinema.org/a/zm7wS5DA2o0S9pu1Tb44pnlvy) to help you get started with CAI. We'll walk through the basic steps — from launching the tool to running your first AI-powered task in the terminal. Whether you're a beginner or just curious, this guide will show you how easy it is to begin using CAI.
 
 From here on, type on `CAI` and start your security exercise. Best way to learn is by example:
 
@@ -520,9 +520,21 @@ For using private models, you are given a [`.env.example`](.env.example) file. C
 
 ### MCP
 
+CAI supports the Model Context Protocol (MCP) for integrating external tools and services with AI agents. MCP is supported via two transport mechanisms:
+
+1. **SSE (Server-Sent Events)** - For web-based servers that push updates over HTTP connections:
 ```bash
 CAI>/mcp load http://localhost:9876/sse burp
-CAI> /mcp add burp redteam_agent
+```
+
+2. **STDIO (Standard Input/Output)** - For local inter-process communication:
+```bash
+CAI>/mcp stdio myserver python mcp_server.py
+```
+
+Once connected, you can add the MCP tools to any agent:
+```bash
+CAI>/mcp add burp redteam_agent
 Adding tools from MCP server 'burp' to agent 'Red Team Agent'...
                                  Adding tools to Red Team Agent
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
@@ -552,6 +564,11 @@ Adding tools from MCP server 'burp' to agent 'Red Team Agent'...
 Added 20 tools from server 'burp' to agent 'Red Team Agent'.
 CAI>/agent 13
 CAI>Create a repeater tab
+```
+
+You can list all active MCP connections and their transport types:
+```bash
+CAI>/mcp list
 ```
 
 https://github.com/user-attachments/assets/386a1fd3-3469-4f84-9396-2a5236febe1f
