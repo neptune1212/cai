@@ -1,6 +1,12 @@
 """
 Tool for executing code via LLM tool calls.
 """
+# Standard library imports
+import os
+import subprocess
+from typing import Optional
+
+# Local imports
 from cai.tools.common import run_command  # pylint: disable=import-error
 
 def execute_code(code: str = "", language: str = "python",
@@ -48,10 +54,20 @@ def execute_code(code: str = "", language: str = "python",
     ext = extensions.get(language.lower(), "txt")
     full_filename = f"{filename}.{ext}"
 
+    # Check if running in a Docker container
+    active_container = os.getenv("CAI_ACTIVE_CONTAINER", "")
+    
+    # Get workspace information for file placement
+    workspace_name = os.getenv("CAI_WORKSPACE", "cai_default")
+    container_workspace_path = f"/workspace/workspaces/{workspace_name}"
+    
+    # Create code file
     create_cmd = f"cat << 'EOF' > {full_filename}\n{code}\nEOF"
     result = run_command(create_cmd, ctf=ctf)
     if "error" in result.lower():
         return f"Failed to create code file: {result}"
+    
+    # Determine command to execute based on language
     if language.lower() == "python":
         exec_cmd = f"python3 {full_filename}"
     elif language.lower() == "php":
@@ -95,6 +111,7 @@ def execute_code(code: str = "", language: str = "python",
     else:
         return f"Unsupported language: {language}"
 
+    # Execute the command and return output
     output = run_command(exec_cmd, ctf=ctf, timeout=timeout)
 
     return output
