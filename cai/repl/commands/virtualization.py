@@ -2047,7 +2047,7 @@ class WorkspaceCommand(Command):
                  name = os.getenv("CAI_WORKSPACE")
                  if name:
                       return f"/workspace/workspaces/{name}"
-                 return "/workspace" # Default container path
+                 return "/" # Default container path
 
         # Now, try to update the active DataRecorder instance if available
         new_filename = None
@@ -2285,7 +2285,7 @@ class WorkspaceCommand(Command):
              def get_common_container_path():
                  name = os.getenv("CAI_WORKSPACE")
                  if name: return f"/workspace/workspaces/{name}"
-                 return "/workspace"
+                 return "/"
 
         host_workspace_dir = get_common_workspace_dir()
         active_container = os.getenv("CAI_ACTIVE_CONTAINER", "")
@@ -2390,7 +2390,7 @@ class WorkspaceCommand(Command):
              def get_common_container_path():
                  name = os.getenv("CAI_WORKSPACE")
                  if name: return f"/workspace/workspaces/{name}"
-                 return "/workspace"
+                 return "/"
 
         host_workspace_dir = get_common_workspace_dir()
         active_container = os.getenv("CAI_ACTIVE_CONTAINER", "")

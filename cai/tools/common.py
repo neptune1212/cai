@@ -73,12 +73,12 @@ def _get_container_workspace_path() -> str:
             print(color(f"Invalid CAI_WORKSPACE name '{workspace_name}' for container. "
                         f"Using '/workspace'.", fg="yellow"))
             # Fallback to default container workspace root if name invalid
-            return "/workspace"
+            return "/"
         # Standard path inside CAI containers
         return f"/workspace/workspaces/{workspace_name}"
     else:
         # If CAI_WORKSPACE is not set, default to /workspace inside container
-        return "/workspace"
+        return "/"
 
 
 class ShellSession:  # pylint: disable=too-many-instance-attributes
