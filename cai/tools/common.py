@@ -339,13 +339,12 @@ class ShellSession:  # pylint: disable=too-many-instance-attributes
             return f"Error terminating session {session_id_short}: {str(e)}"
 
 
-def create_shell_session(command, ctf=None, container_id=None):
+def create_shell_session(command, ctf=None, container_id=None, **kwargs):
     """Create a new shell session in the correct workspace/environment."""
     if container_id:
         # Workspace is determined internally by ShellSession for containers
         session = ShellSession(command, ctf=ctf, container_id=container_id)
     else:
-        # For local or CTF, determine host workspace dir
         workspace_dir = _get_workspace_dir()
         session = ShellSession(command, ctf=ctf, workspace_dir=workspace_dir)
 
@@ -667,7 +666,7 @@ def run_command(command: str, ctf=None, stdout: bool = False,
     # Handle Async Session Creation Locally
     if async_mode:
         # Pass host workspace dir to the session
-        new_session_id = create_shell_session(command, workspace_dir=host_workspace) # noqa E501
+        new_session_id = create_shell_session(command) # noqa E501
         if "Failed" in new_session_id: # Check failure
              return new_session_id
         if stdout:
