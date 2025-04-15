@@ -173,6 +173,32 @@ echo -e 'OPENAI_API_KEY="sk-1234"\nANTHROPIC_API_KEY=""\nOLLAMA=""\nPROMPT_TOOLK
 cai  # first launch it can take up to 30 seconds
 ```
 
+### Windows WSL 
+Go to the Microsoft page: https://learn.microsoft.com/en-us/windows/wsl/install. Here you will find all the instructions to install WSL
+
+From Powershell write: wsl --install
+
+```bash
+
+sudo apt-get update && \
+    sudo apt-get install -y git python3-pip python3-venv
+
+# Create the virtual environment
+python3 -m venv cai_env
+
+# Install the package from the local directory
+source cai_env/bin/activate && pip install cai-framework
+
+# Generate a .env file and set up with defaults
+echo -e 'OPENAI_API_KEY="sk-1234"\nANTHROPIC_API_KEY=""\nOLLAMA=""\nPROMPT_TOOLKIT_NO_CPR=1' > .env
+
+# Launch CAI
+cai  # first launch it can take up to 30 seconds
+
+```
+
+
+
 Refer to the [Development](#development) section for dev. install instructions.
 
 ### :nut_and_bolt: Setup `.env` file
