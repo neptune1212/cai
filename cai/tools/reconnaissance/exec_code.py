@@ -1,7 +1,13 @@
 """
 Tool for executing code via LLM tool calls.
 """
-from cai.tools.common import run_command  # pylint: disable=import-error
+# Standard library imports
+import os
+import subprocess
+from typing import Optional
+
+# Local imports
+from cai.tools.common import run_command, _get_workspace_dir, _get_container_workspace_path  # pylint: disable=import-error
 
 def execute_code(code: str = "", language: str = "python",
                 filename: str = "exploit", timeout: int = 100, ctf=None) -> str:
@@ -48,53 +54,102 @@ def execute_code(code: str = "", language: str = "python",
     ext = extensions.get(language.lower(), "txt")
     full_filename = f"{filename}.{ext}"
 
-    create_cmd = f"cat << 'EOF' > {full_filename}\n{code}\nEOF"
+    # Check if running in a Docker container
+    active_container = os.getenv("CAI_ACTIVE_CONTAINER", "")
+    
+    # Determine the correct workspace path (host or container)
+    if active_container:
+        # Running in a container environment
+        workspace_path = _get_container_workspace_path()
+    else:
+        # Running on the host system
+        workspace_path = _get_workspace_dir()
+
+    # Create code file
+    # Ensure the workspace directory exists before writing the file
+    # The run_command function handles directory creation based on its context
+    # Construct the full path for the code file
+    code_file_path = os.path.join(workspace_path, full_filename)
+
+    # Escape single quotes in the code to avoid issues with cat << 'EOF'
+    escaped_code = code.replace("'", "'\\''")
+    create_cmd = f"mkdir -p '{workspace_path}' && echo '{escaped_code}' > '{code_file_path}'"
+    # Use echo instead of cat heredoc for better handling of special chars/newlines
+    # create_cmd = f"mkdir -p '{workspace_path}' && cat << 'EOF' > '{code_file_path}'\\n{code}\\nEOF"
+
     result = run_command(create_cmd, ctf=ctf)
-    if "error" in result.lower():
-        return f"Failed to create code file: {result}"
+    if "error" in result.lower() or "failed" in result.lower(): # Check for common failure indicators
+        return f"Failed to create code file '{code_file_path}': {result}"
+
+    # Determine command to execute based on language, using workspace_path
     if language.lower() == "python":
-        exec_cmd = f"python3 {full_filename}"
+        exec_cmd = f"python3 '{code_file_path}'"
     elif language.lower() == "php":
-        exec_cmd = f"php {full_filename}"
+        exec_cmd = f"php '{code_file_path}'"
     elif language.lower() in ["bash", "sh"]:
-        exec_cmd = f"bash {full_filename}"
+        # Ensure the script is executable first
+        run_command(f"chmod +x '{code_file_path}'", ctf=ctf)
+        exec_cmd = f"bash '{code_file_path}'"
     elif language.lower() == "ruby":
-        exec_cmd = f"ruby {full_filename}"
+        exec_cmd = f"ruby '{code_file_path}'"
     elif language.lower() == "perl":
-        exec_cmd = f"perl {full_filename}"
+        exec_cmd = f"perl '{code_file_path}'"
     elif language.lower() == "golang" or language.lower() == "go":
         temp_dir = f"/tmp/go_exec_{filename}"
         run_command(f"mkdir -p {temp_dir}", ctf=ctf)
-        run_command(f"cp {full_filename} {temp_dir}/main.go", ctf=ctf)
+        # Copy the file using its full path
+        run_command(f"cp '{code_file_path}' {temp_dir}/main.go", ctf=ctf)
         run_command(f"cd {temp_dir} && go mod init temp", ctf=ctf)
         exec_cmd = f"cd {temp_dir} && go run main.go"
     elif language.lower() == "javascript":
-        exec_cmd = f"node {full_filename}"
+        exec_cmd = f"node '{code_file_path}'"
     elif language.lower() == "typescript":
-        exec_cmd = f"ts-node {full_filename}"
+        # Ensure ts-node is installed (best effort warning)
+        # print("[Warning] Ensure 'ts-node' and 'typescript' are installed in the execution environment.")
+        exec_cmd = f"ts-node '{code_file_path}'"
     elif language.lower() == "rust":
         # For Rust, we need to compile first
-        run_command(f"rustc {full_filename} -o {filename}", ctf=ctf)
-        exec_cmd = f"./{filename}"
+        # Compile in the workspace directory
+        compile_cmd = f"rustc '{code_file_path}' -o '{os.path.join(workspace_path, filename)}'"
+        compile_result = run_command(compile_cmd, ctf=ctf)
+        if "error" in compile_result.lower():
+            return f"Rust compilation failed: {compile_result}"
+        exec_cmd = f"'{os.path.join(workspace_path, filename)}'" # Execute the compiled binary from workspace
     elif language.lower() == "csharp":
         # For C#, compile with dotnet
-        run_command(f"dotnet build {full_filename}", ctf=ctf)
-        exec_cmd = f"dotnet run {full_filename}"
+        # This assumes a project structure might be needed. A simple script might fail.
+        # For simplicity, let's try running directly if possible, else build/run
+        # This might require a .csproj file in the workspace.
+        # Trying run directly first:
+        exec_cmd = f"dotnet run --project '{workspace_path}' '{code_file_path}'" # Specify project context
+        # Fallback or more complex build logic might be needed here.
+        # print("[Warning] C# execution might require a .csproj file in the workspace.")
     elif language.lower() == "java":
         # For Java, compile first
-        run_command(f"javac {full_filename}", ctf=ctf)
-        exec_cmd = f"java {filename}"
+        compile_cmd = f"javac '{code_file_path}'"
+        compile_result = run_command(compile_cmd, ctf=ctf)
+        if "error" in compile_result.lower():
+            return f"Java compilation failed: {compile_result}"
+        # Execute using the class name (filename) within the workspace context
+        exec_cmd = f"java -cp '{workspace_path}' {filename}"
     elif language.lower() == "kotlin":
         # For Kotlin, compile first
-        run_command(f"kotlinc {full_filename} -include-runtime -d {filename}.jar", ctf=ctf)
-        exec_cmd = f"java -jar {filename}.jar"
+        jar_path = os.path.join(workspace_path, f"{filename}.jar")
+        compile_cmd = f"kotlinc '{code_file_path}' -include-runtime -d '{jar_path}'"
+        compile_result = run_command(compile_cmd, ctf=ctf)
+        if "error" in compile_result.lower():
+            return f"Kotlin compilation failed: {compile_result}"
+        exec_cmd = f"java -jar '{jar_path}'"
     elif language.lower() == "solidity":
         # For Solidity, compile with solc
-        run_command(f"mkdir -p {filename}_build", ctf=ctf)
-        exec_cmd = f"npx solc --bin --abi --optimize -o {filename}_build {full_filename}"
+        build_dir = os.path.join(workspace_path, f"{filename}_build")
+        run_command(f"mkdir -p '{build_dir}'", ctf=ctf)
+        # Ensure npx and solc are available
+        exec_cmd = f"npx solc --bin --abi --optimize -o '{build_dir}' '{code_file_path}'"
     else:
         return f"Unsupported language: {language}"
 
+    # Execute the command and return output
     output = run_command(exec_cmd, ctf=ctf, timeout=timeout)
 
     return output
