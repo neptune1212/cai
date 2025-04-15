@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Log Analysis Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .plot-container {
+            background: white;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #444;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Log Analysis Dashboard</h1>
+        
+        <div class="plot-container">
+            <h2>Logs by Day</h2>
+            <img src="{{ logs_by_day }}" alt="Logs by Day">
+        </div>
+        
+        <div class="plot-container">
+            <h2>Logs by System</h2>
+            <img src="{{ logs_by_system }}" alt="Logs by System">
+        </div>
+        
+        <div class="plot-container">
+            <h2>Most Active Users</h2>
+            <img src="{{ active_users }}" alt="Most Active Users">
+        </div>
+    </div>
+</body>
+</html> 
