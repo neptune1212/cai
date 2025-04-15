@@ -13,6 +13,8 @@ from typing import (
 from rich.console import Console  # pylint: disable=import-error
 
 from cai.repl.commands.base import Command, register_command
+# Import common workspace functions
+from cai.tools.common import _get_workspace_dir, _get_container_workspace_path
 
 console = Console()
 
@@ -64,11 +66,16 @@ class ShellCommand(Command):
         active_container = os.getenv("CAI_ACTIVE_CONTAINER", "")
         
         if active_container:
-            console.print(f"[dim]Running in container: {active_container}[/dim]")
-            
-            # Use docker exec to run the command in the container
-            docker_command = f"docker exec {active_container} sh -c {shell_command_to_execute!r}"
-            console.print(f"[blue]Executing in container:[/blue] {original_command}")
+            console.print(f"[dim]Running in container: {active_container[:12]}...[/dim]")
+
+            # Get the target workspace path inside the container
+            container_workspace = _get_container_workspace_path()
+
+            # Use docker exec with -w flag to run the command in the container's workspace
+            # Ensure the command string is properly quoted for the inner shell
+            # Use repr() for robust quoting of the command
+            docker_command = f"docker exec -w '{container_workspace}' {active_container} sh -c {shell_command_to_execute!r}"
+            console.print(f"[blue]Executing in container workspace '{container_workspace}':[/blue] {original_command}")
             
             # Save original signal handler
             original_sigint_handler = signal.getsignal(signal.SIGINT)
@@ -77,7 +84,8 @@ class ShellCommand(Command):
                 # Set temporary handler for SIGINT that only affects shell command
                 def shell_sigint_handler(sig, frame):  # pylint: disable=unused-argument
                     # Just allow KeyboardInterrupt to propagate
-                    signal.signal(signal.SIGINT, original_sigint_handler)
+                    if original_sigint_handler:
+                        signal.signal(signal.SIGINT, original_sigint_handler)
                     raise KeyboardInterrupt
 
                 signal.signal(signal.SIGINT, shell_sigint_handler)
@@ -149,7 +157,7 @@ class ShellCommand(Command):
                     pass
                 return True
             except Exception as e:  # pylint: disable=broad-except
-                console.print(f"[red]Error executing command in container: {str(e)}[/red]")
+                console.print(f"[red]Error executing command in container '{active_container[:12]}': {str(e)}[/red]")
                 console.print("[yellow]Ejecutando en el host local.[/yellow]")
                 # Ejecutar en el host como fallback
                 os.environ.pop("CAI_ACTIVE_CONTAINER", None)
@@ -160,36 +168,21 @@ class ShellCommand(Command):
                 signal.signal(signal.SIGINT, original_sigint_handler)
         
         # No container, run locally
-        # Get workspace path from environment variable
-        workspace_name = os.getenv("CAI_WORKSPACE", None)        
-        effective_cwd = None
+        # Get the target host workspace directory using the common function
+        host_workspace_dir = _get_workspace_dir()
 
-        # Check if workspace is set
-        if workspace_name:
-            # Construct the workspace path
-            base_dir = os.getenv("CAI_WORKSPACE_DIR", None)
-            if base_dir:
-                workspace_path = os.path.join(base_dir, workspace_name)
-            else:
-                workspace_path = os.getcwd()
-            
-            # Check if the workspace path exists
-            if os.path.isdir(workspace_path):
-                effective_cwd = workspace_path
-            else:
-                # Fallback to current directory
-                console.print(f"[yellow]Warning: Workspace '{workspace_name}' not found at {workspace_path}.[/yellow]")
-                effective_cwd = os.getcwd()
-            
-            # For os.system when using async commands, prepend cd
-            if effective_cwd != os.getcwd():
-                shell_command_to_execute = f"cd {effective_cwd!r} && {original_command}"
-                console.print(f"[dim]Running in workspace: {effective_cwd}[/dim]")
-            else:
-                console.print(f"[dim]Running in current directory: {effective_cwd}[/dim]")
+        # Check if we are already in the target workspace directory
+        is_in_target_workspace = os.path.abspath(os.getcwd()) == os.path.abspath(host_workspace_dir)
+
+        if is_in_target_workspace:
+            console.print(f"[dim]Running in workspace (current dir): {host_workspace_dir}[/dim]")
+            # Command to execute for async (os.system)
+            # No need for cd prefix if already in the directory
+            async_command_to_execute = original_command
         else:
-            effective_cwd = os.getcwd()
-            console.print(f"[dim]Running in current directory: {effective_cwd}[/dim]")
+            console.print(f"[dim]Running in workspace: {host_workspace_dir}[/dim]")
+            # Command to execute for async (os.system) needs cd prefix
+            async_command_to_execute = f"cd {host_workspace_dir!r} && {original_command}"
 
         console.print(f"[blue]Executing:[/blue] {original_command}")
 
@@ -200,7 +193,8 @@ class ShellCommand(Command):
             # Set temporary handler for SIGINT that only affects shell command
             def shell_sigint_handler(sig, frame):  # pylint: disable=unused-argument
                 # Just allow KeyboardInterrupt to propagate
-                signal.signal(signal.SIGINT, original_sigint_handler)
+                if original_sigint_handler:
+                    signal.signal(signal.SIGINT, original_sigint_handler)
                 raise KeyboardInterrupt
 
             signal.signal(signal.SIGINT, shell_sigint_handler)
@@ -220,7 +214,7 @@ class ShellCommand(Command):
                 )
                 # os.system runs in a subshell, inheriting the environment
                 # The shell handles the `cd ... && ...` part correctly.
-                os.system(shell_command_to_execute)  # nosec B605
+                os.system(async_command_to_execute)  # nosec B605
                 console.print(
                     "[green]Async command completed or detached[/green]"
                 )
@@ -236,7 +230,7 @@ class ShellCommand(Command):
                 stderr=subprocess.STDOUT,
                 universal_newlines=True,
                 bufsize=1,
-                cwd=effective_cwd # Set the current working directory explicitly
+                cwd=host_workspace_dir # Set the CWD for the subprocess
             )
 
             # Show output in real time
