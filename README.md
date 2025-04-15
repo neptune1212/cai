@@ -136,7 +136,10 @@ cai  # first launch it can take up to 30 seconds
 ### Ubuntu 24.04
 ```bash
 sudo apt-get update && \
-    sudo apt-get install -y git python3-pip python3.12-venv
+    sudo apt-get install -y git python3-pip python3-venv
+
+# Create the virtual environment
+python3 -m venv cai_env
 
 # Install the package from the local directory
 source cai_env/bin/activate && pip install cai-framework
