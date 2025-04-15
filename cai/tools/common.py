@@ -16,66 +16,69 @@ from typing import Optional, List, Dict, Any
 ACTIVE_SESSIONS = {}
 
 def _get_workspace_dir() -> str:
-    """Determines the target workspace directory based on env var."""
-    # Check if running in a container
-    active_container = os.getenv("CAI_ACTIVE_CONTAINER", "")
-    
-    if active_container:
-        # If in container, use container workspace path
-        workspace_name = os.getenv("CAI_WORKSPACE", None)
-        if workspace_name:
-            # Basic validation - allow alphanumeric, underscore, hyphen
-            if not all(c.isalnum() or c in ['_', '-'] for c in workspace_name):
-                print(color(f"Invalid CAI_WORKSPACE name '{workspace_name}'. "
-                            f"Using default.", fg="yellow"))
-                workspace_name = "cai_default"
-        else:
-            workspace_name = "/"
-            
-        # In container, use standard container workspace path
-        return f"/workspace/workspaces/{workspace_name}"
-    
-    # Not in container, check if CAI_WORKSPACE_DIR is set
-    elif os.getenv("CAI_WORKSPACE_DIR"):
-        base_dir = os.getenv("CAI_WORKSPACE_DIR", "workspaces")
-        # Ensure base_dir is absolute for host operations
-        base_dir = os.path.abspath(base_dir)
+    """Determines the target workspace directory based on env vars for host."""
+    # This function is for the HOST perspective. Container path is separate.
+    base_dir_env = os.getenv("CAI_WORKSPACE_DIR")
+    workspace_name = os.getenv("CAI_WORKSPACE")
 
-        workspace_name = os.getenv("CAI_WORKSPACE")
-        if workspace_name:
-            # Basic validation - allow alphanumeric, underscore, hyphen
-            if not all(c.isalnum() or c in ['_', '-'] for c in workspace_name):
-                print(color(f"Invalid CAI_WORKSPACE name '{workspace_name}'. "
-                            f"Using default.", fg="yellow"))
-                workspace_name = "cai_default"
-        else:
-            workspace_name = "cai_default"
-
-        target_dir = os.path.join(base_dir, workspace_name)
-        # Ensure the directory exists on the host
-        try:
-            os.makedirs(target_dir, exist_ok=True)
-        except OSError as e:
-            print(color(f"Error creating host workspace directory '{target_dir}': {e}", 
-                        fg="red"))  # noqa E501
-            # Fallback to current directory if creation fails
-            return os.getcwd()
-        return target_dir
+    # Determine the base directory
+    if base_dir_env:
+        # Use the specified base directory
+        base_dir = os.path.abspath(base_dir_env)
     else:
-        # If no workspace is set, use the current directory
+        # Default base directory is 'workspaces' relative to CWD
+        # unless workspace_name is not set, then it's just CWD.
+        if workspace_name:
+            base_dir = os.path.join(os.getcwd(), "workspaces")
+        else:
+            # If no workspace name is set, the workspace IS the CWD.
+             return os.getcwd()
+
+    # If a workspace name is provided, append it to the base directory
+    if workspace_name:
+        # Basic validation - allow alphanumeric, underscore, hyphen
+        if not all(c.isalnum() or c in ['_', '-'] for c in workspace_name):
+            print(color(f"Invalid CAI_WORKSPACE name '{workspace_name}'. "
+                        f"Using directory '{base_dir}' instead.", fg="yellow"))
+            # Fallback to base_dir if name is invalid
+            target_dir = base_dir
+        else:
+             target_dir = os.path.join(base_dir, workspace_name)
+    else:
+         # If no workspace name, the target is the base directory itself.
+         # This case is typically handled earlier, but included for clarity.
+         target_dir = base_dir
+
+    # Ensure the final target directory exists on the host
+    try:
+        # Use abspath to resolve any relative paths like '.'
+        abs_target_dir = os.path.abspath(target_dir)
+        os.makedirs(abs_target_dir, exist_ok=True)
+        return abs_target_dir
+    except OSError as e:
+        print(color(f"Error creating/accessing host workspace directory '{abs_target_dir}': {e}",
+                    fg="red")) # noqa E501
+        # Critical fallback: If directory creation fails, revert to CWD
+        print(color(f"Falling back to current directory: {os.getcwd()}", fg="yellow"))
         return os.getcwd()
 
 
 def _get_container_workspace_path() -> str:
     """Determines the target workspace path inside the container."""
-    workspace_name = os.getenv("CAI_WORKSPACE", None)    # Basic validation
-    if workspace_name:  
+    workspace_name = os.getenv("CAI_WORKSPACE") # Removed default here
+
+    if workspace_name:
+        # Basic validation - allow alphanumeric, underscore, hyphen
         if not all(c.isalnum() or c in ['_', '-'] for c in workspace_name):
-            workspace_name = "cai_default"
+            print(color(f"Invalid CAI_WORKSPACE name '{workspace_name}' for container. "
+                        f"Using '/workspace'.", fg="yellow"))
+            # Fallback to default container workspace root if name invalid
+            return "/workspace"
         # Standard path inside CAI containers
         return f"/workspace/workspaces/{workspace_name}"
     else:
-        return _get_workspace_dir()
+        # If CAI_WORKSPACE is not set, default to /workspace inside container
+        return "/workspace"
 
 
 class ShellSession:  # pylint: disable=too-many-instance-attributes
@@ -90,9 +93,11 @@ class ShellSession:  # pylint: disable=too-many-instance-attributes
         if self.container_id:
             self.workspace_dir = _get_container_workspace_path()
         elif self.ctf:
-            self.workspace_dir = workspace_dir or _get_workspace_dir() # CTF might specify
+            # CTF context might specify its own workspace, otherwise use host logic
+            self.workspace_dir = workspace_dir or _get_workspace_dir()
         else:
-            self.workspace_dir = _get_workspace_dir() # Local host
+             # Local host context
+            self.workspace_dir = _get_workspace_dir()
 
         self.process = None
         self.master = None
@@ -367,9 +372,10 @@ class ShellSession:  # pylint: disable=too-many-instance-attributes
 def create_shell_session(command, ctf=None, container_id=None, **kwargs):
     """Create a new shell session in the correct workspace/environment."""
     if container_id:
-        # Workspace is determined internally by ShellSession for containers
+        # Workspace is determined internally by ShellSession using _get_container_workspace_path
         session = ShellSession(command, ctf=ctf, container_id=container_id)
     else:
+        # For local sessions, determine workspace using host logic
         workspace_dir = _get_workspace_dir()
         session = ShellSession(command, ctf=ctf, workspace_dir=workspace_dir)
 
@@ -458,7 +464,7 @@ def terminate_session(session_id):
 
 def _run_ctf(ctf, command, stdout=False, timeout=100, workspace_dir=None):
     """Runs command in CTF env, changing to workspace_dir first."""
-    target_dir = workspace_dir or _get_workspace_dir() # Should be host path if specified
+    target_dir = workspace_dir or _get_workspace_dir()
     full_command = f"cd '{target_dir}' && {command}"
     original_cmd_for_msg = command # For logging
     context_msg = f"(ctf:{target_dir})"
@@ -675,8 +681,8 @@ def run_command(command: str, ctf=None, stdout: bool = False,
          # Async for CTF might need specific implementation if get_shell is blocking
          if async_mode:
               return "Async mode not fully supported for CTF environment via this function yet." # noqa E501
-         # _run_ctf handles workspace internally
-         return _run_ctf(ctf, command, stdout, timeout, _get_workspace_dir()) # noqa E501
+         # _run_ctf handles workspace internally using _get_workspace_dir() default
+         return _run_ctf(ctf, command, stdout, timeout) # Pass None for workspace_dir
 
     # --- SSH Execution ---
     if is_ssh_env:
@@ -687,21 +693,24 @@ def run_command(command: str, ctf=None, stdout: bool = False,
          return _run_ssh(command, stdout, timeout) # Workspace dir less relevant here # noqa E501
 
     # --- Local Execution (Default Fallback) ---
-    host_workspace = _get_workspace_dir()
+    # Let _run_local handle determining the host workspace
     # Handle Async Session Creation Locally
     if async_mode:
-        # Pass host workspace dir to the session
-        new_session_id = create_shell_session(command) # noqa E501
-        if "Failed" in new_session_id: # Check failure
+        # create_shell_session uses _get_workspace_dir() when container_id is None
+        new_session_id = create_shell_session(command)
+        if isinstance(new_session_id, str) and "Failed" in new_session_id: # Check failure
              return new_session_id
+        # Retrieve the actual workspace dir the session is using
+        session = ACTIVE_SESSIONS.get(new_session_id)
+        actual_workspace = session.workspace_dir if session else "unknown"
         if stdout:
             time.sleep(0.2) # Allow session buffer to populate
             output = get_session_output(new_session_id, clear=False)
-            print(f"\033[32m(Started Session {new_session_id} in local:{host_workspace})\n{output}\033[0m") # noqa E501
+            print(f"\033[32m(Started Session {new_session_id} in local:{actual_workspace})\n{output}\033[0m") # noqa E501
         return f"Started async session {new_session_id} locally. Use this ID to interact." # noqa E501
 
-    # Handle Synchronous Execution Locally
-    return _run_local(command, stdout, timeout, host_workspace)
+    # Handle Synchronous Execution Locally using _run_local default
+    return _run_local(command, stdout, timeout)
 
 # Example Usage (for testing purposes)
 # if __name__ == '__main__':

@@ -1944,16 +1944,31 @@ class WorkspaceCommand(Command):
                 else:
                     env_type = "host"
                     env_name = "Host System (container not running)"
-                    workspace_dir = os.getcwd() if workspace_name is None else self._get_workspace_dir()
+                    # Use common._get_workspace_dir() for consistency
+                    try:
+                        from cai.tools.common import _get_workspace_dir as get_common_workspace_dir
+                        workspace_dir = get_common_workspace_dir()
+                    except ImportError:
+                         workspace_dir = os.getcwd() # Basic fallback
             except Exception:
                 env_type = "host"
                 env_name = "Host System (error inspecting container)"
-                workspace_dir = os.getcwd() if workspace_name is None else self._get_workspace_dir()
+                # Use common._get_workspace_dir() for consistency
+                try:
+                    from cai.tools.common import _get_workspace_dir as get_common_workspace_dir
+                    workspace_dir = get_common_workspace_dir()
+                except ImportError:
+                     workspace_dir = os.getcwd() # Basic fallback
         else:
             env_type = "host"
             env_name = "Host System"
-            workspace_dir = os.getcwd() if workspace_name is None else self._get_workspace_dir()
-        
+            # Use common._get_workspace_dir() for consistency
+            try:
+                from cai.tools.common import _get_workspace_dir as get_common_workspace_dir
+                workspace_dir = get_common_workspace_dir()
+            except ImportError:
+                 workspace_dir = os.getcwd() # Basic fallback
+
         # Show workspace information
         console.print(
             Panel(
@@ -2005,8 +2020,12 @@ class WorkspaceCommand(Command):
             return False
 
         # Import the necessary modules for setting environment variables
+        # And for getting workspace dir consistently
         try:
             from cai.repl.commands.config import set_env_var
+            from cai.tools.common import _get_workspace_dir as get_common_workspace_dir
+            from cai.tools.common import _get_container_workspace_path as get_common_container_path
+
             # Set the environment variable
             if not set_env_var("CAI_WORKSPACE", workspace_name):
                 console.print(
@@ -2016,6 +2035,19 @@ class WorkspaceCommand(Command):
         except ImportError:
             # Fallback if import fails
             os.environ["CAI_WORKSPACE"] = workspace_name
+            # Define basic fallbacks for path functions if import failed
+            def get_common_workspace_dir():
+                 base = os.getenv("CAI_WORKSPACE_DIR", ".") # Default to current dir base
+                 name = os.getenv("CAI_WORKSPACE")
+                 if name:
+                      return os.path.abspath(os.path.join(base, name))
+                 return os.path.abspath(base) # Use base dir if no name
+
+            def get_common_container_path():
+                 name = os.getenv("CAI_WORKSPACE")
+                 if name:
+                      return f"/workspace/workspaces/{name}"
+                 return "/workspace" # Default container path
 
         # Now, try to update the active DataRecorder instance if available
         new_filename = None
@@ -2070,12 +2102,16 @@ class WorkspaceCommand(Command):
             )
 
         # Now show the updated workspace information
-        # Get the new workspace directory
-        new_workspace_dir = self._get_workspace_dir()
-        
+        # Get the new workspace directory using the common function
+        new_workspace_dir = get_common_workspace_dir()
+
         # Create the directory if it doesn't exist on host
-        os.makedirs(new_workspace_dir, exist_ok=True)
-        
+        try: # Add try-except for robustness
+             os.makedirs(new_workspace_dir, exist_ok=True)
+        except OSError as e:
+             console.print(f"[red]Error creating host directory {new_workspace_dir}: {e}[/red]")
+             # Decide if this is fatal or just a warning
+
         # If container is active, also create the directory in the container
         active_container = os.getenv("CAI_ACTIVE_CONTAINER", "")
         if active_container:
@@ -2086,10 +2122,10 @@ class WorkspaceCommand(Command):
                 text=True,
                 check=False
             )
-            
+
             if check_process.returncode == 0 and "true" in check_process.stdout.lower():
-                # Create the workspace directory in the container
-                container_workspace_path = f"/workspace/workspaces/{workspace_name}"
+                # Get container workspace path using the common function
+                container_workspace_path = get_common_container_path()
                 try:
                     mkdir_cmd = ["docker", "exec", active_container, "mkdir", "-p", container_workspace_path]
                     mkdir_result = subprocess.run(
@@ -2125,18 +2161,35 @@ class WorkspaceCommand(Command):
         return True
         
     def _get_workspace_dir(self) -> str:
-        """Get the workspace directory.
-        
+        """Get the host workspace directory using the common utility.
+
         Returns:
-            The workspace directory path
+            The host workspace directory path.
         """
-        base_dir = os.getenv("CAI_WORKSPACE_DIR", "workspaces")
-        workspace_name = os.getenv("CAI_WORKSPACE", None)        
-        # Basic validation for workspace name
-        if not all(c.isalnum() or c in ['_', '-'] for c in workspace_name):
-            workspace_name = "cai_default"
-            
-        return os.path.join(base_dir, workspace_name)
+        try:
+            # Use the centralized function from common.py
+            from cai.tools.common import _get_workspace_dir as get_common_workspace_dir
+            return get_common_workspace_dir()
+        except ImportError:
+            # Provide a basic fallback if import fails, mirroring common.py logic
+            # without 'cai_default'
+            base_dir = os.getenv("CAI_WORKSPACE_DIR")
+            workspace_name = os.getenv("CAI_WORKSPACE")
+
+            if base_dir and workspace_name:
+                 # Basic validation
+                 if not all(c.isalnum() or c in ['_', '-'] for c in workspace_name):
+                      print(f"[yellow]Warning: Invalid CAI_WORKSPACE name '{workspace_name}' in fallback.[/yellow]")
+                      # Fallback to base directory if name is invalid
+                      return os.path.abspath(base_dir)
+                 target_dir = os.path.join(base_dir, workspace_name)
+                 return os.path.abspath(target_dir)
+            elif base_dir:
+                 # If only base dir is set, use that
+                 return os.path.abspath(base_dir)
+            else:
+                 # Default to current working directory if nothing else is set
+                 return os.getcwd()
 
     def _list_workspace_contents(self, env_type: str, workspace_dir: str) -> None:
         """List the contents of the workspace.
@@ -2218,21 +2271,37 @@ class WorkspaceCommand(Command):
         Returns:
             True if the subcommand was handled successfully, False otherwise
         """
-        workspace_name = os.getenv("CAI_WORKSPACE", None)
-        workspace_dir = self._get_workspace_dir()
+        # Get workspace info using common functions
+        try:
+            from cai.tools.common import _get_workspace_dir as get_common_workspace_dir
+            from cai.tools.common import _get_container_workspace_path as get_common_container_path
+        except ImportError:
+             # Define basic fallbacks if import fails
+             def get_common_workspace_dir():
+                 base = os.getenv("CAI_WORKSPACE_DIR", ".")
+                 name = os.getenv("CAI_WORKSPACE")
+                 if name: return os.path.abspath(os.path.join(base, name))
+                 return os.path.abspath(base)
+             def get_common_container_path():
+                 name = os.getenv("CAI_WORKSPACE")
+                 if name: return f"/workspace/workspaces/{name}"
+                 return "/workspace"
+
+        host_workspace_dir = get_common_workspace_dir()
         active_container = os.getenv("CAI_ACTIVE_CONTAINER", "")
-        
+
         # Execute command in the appropriate environment
         if active_container:
-            # Use the workspace path inside the container
-            container_workspace_path = f"/workspace/workspaces/{workspace_name}"
-            
+            # Use the container workspace path from common function
+            container_workspace_path = get_common_container_path()
+
             # Determine the target path within the container
-            target_path = container_workspace_path
+            target_path_in_container = container_workspace_path
             if args:
-                target_path = os.path.join(container_workspace_path, args[0])
-            
-            # First ensure the workspace directory exists in the container
+                # Ensure args[0] is treated as relative to the workspace
+                target_path_in_container = os.path.join(container_workspace_path, args[0])
+
+            # Ensure the base workspace directory exists in the container
             mkdir_cmd = ["docker", "exec", active_container, "mkdir", "-p", container_workspace_path]
             subprocess.run(
                 mkdir_cmd,
@@ -2240,15 +2309,15 @@ class WorkspaceCommand(Command):
                 text=True,
                 check=False
             )
-            
+
             # Try in container
             result = subprocess.run(
-                ["docker", "exec", active_container, "ls", "-la", target_path],
+                ["docker", "exec", active_container, "ls", "-la", target_path_in_container], # Use target path
                 capture_output=True,
                 text=True,
                 check=False
             )
-            
+
             if result.returncode == 0:
                 console.print(result.stdout)
                 return True
@@ -2258,12 +2327,24 @@ class WorkspaceCommand(Command):
             console.print("[yellow]Falling back to host system...[/yellow]")
             
         # List on host
-        host_path = os.path.join(workspace_dir, args[0] if args else "")
-        os.makedirs(host_path, exist_ok=True)
-        
+        # Determine target path on host relative to host workspace dir
+        target_path_on_host = host_workspace_dir
+        if args:
+             # Ensure args[0] is treated as relative to the workspace
+             target_path_on_host = os.path.join(host_workspace_dir, args[0])
+
+        # Ensure the target directory exists on host before listing
+        # Use os.path.dirname if target is potentially a file path
+        dir_to_ensure = os.path.dirname(target_path_on_host) if '.' in os.path.basename(target_path_on_host) else target_path_on_host
+        try:
+            os.makedirs(dir_to_ensure, exist_ok=True)
+        except OSError as e:
+            console.print(f"[red]Error creating directory {dir_to_ensure} on host: {e}[/red]")
+            # Potentially return False or handle error appropriately
+
         try:
             result = subprocess.run(
-                ["ls", "-la", host_path],
+                ["ls", "-la", target_path_on_host], # Use target path
                 capture_output=True,
                 text=True,
                 check=False
@@ -2271,6 +2352,7 @@ class WorkspaceCommand(Command):
             
             if result.returncode == 0:
                 console.print(result.stdout)
+                return True
             else:
                 console.print(f"[red]Error listing files: {result.stderr}[/red]")
                 return False
@@ -2294,16 +2376,31 @@ class WorkspaceCommand(Command):
             return False
             
         command = " ".join(args)
-        workspace_name = os.getenv("CAI_WORKSPACE", None)        
-        workspace_dir = self._get_workspace_dir()
+        # Get workspace info using common functions
+        try:
+            from cai.tools.common import _get_workspace_dir as get_common_workspace_dir
+            from cai.tools.common import _get_container_workspace_path as get_common_container_path
+        except ImportError:
+             # Define basic fallbacks if import fails
+             def get_common_workspace_dir():
+                 base = os.getenv("CAI_WORKSPACE_DIR", ".")
+                 name = os.getenv("CAI_WORKSPACE")
+                 if name: return os.path.abspath(os.path.join(base, name))
+                 return os.path.abspath(base)
+             def get_common_container_path():
+                 name = os.getenv("CAI_WORKSPACE")
+                 if name: return f"/workspace/workspaces/{name}"
+                 return "/workspace"
+
+        host_workspace_dir = get_common_workspace_dir()
         active_container = os.getenv("CAI_ACTIVE_CONTAINER", "")
-        
+
         # Execute in container if active
         if active_container:
             try:
-                # Use the workspace path inside the container
-                container_workspace_path = f"/workspace/workspaces/{workspace_name}"
-                
+                # Use the container workspace path from common function
+                container_workspace_path = get_common_container_path()
+
                 # First ensure the workspace directory exists in the container
                 mkdir_cmd = ["docker", "exec", active_container, "mkdir", "-p", container_workspace_path]
                 subprocess.run(
@@ -2312,7 +2409,7 @@ class WorkspaceCommand(Command):
                     text=True,
                     check=False
                 )
-                
+
                 # Execute the command in the container's workspace directory
                 result = subprocess.run(
                     ["docker", "exec", "-w", container_workspace_path, active_container, "sh", "-c", command],
@@ -2320,26 +2417,26 @@ class WorkspaceCommand(Command):
                     text=True,
                     check=False
                 )
-                
+
                 console.print(f"[dim]$ {command}[/dim]")
                 if result.stdout:
                     console.print(result.stdout)
-                    
+
                 if result.stderr:
                     console.print(f"[yellow]{result.stderr}[/yellow]")
-                    
+
                 if result.returncode != 0:
                     console.print("[yellow]Command failed in container. Trying on host...[/yellow]")
-                    return self._exec_on_host(command, workspace_dir)
-                    
+                    return self._exec_on_host(command, host_workspace_dir) # Pass host_workspace_dir
+
                 return True
             except Exception as e:
                 console.print(f"[yellow]Error executing in container: {str(e)}[/yellow]")
                 console.print("[yellow]Falling back to host execution...[/yellow]")
         
         # Execute on host
-        return self._exec_on_host(command, workspace_dir)
-        
+        return self._exec_on_host(command, host_workspace_dir) # Pass host_workspace_dir
+
     def _exec_on_host(self, command: str, workspace_dir: str) -> bool:
         """Execute a command on the host.
         
