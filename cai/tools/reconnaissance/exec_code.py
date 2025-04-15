@@ -58,26 +58,29 @@ def execute_code(code: str = "", language: str = "python",
     active_container = os.getenv("CAI_ACTIVE_CONTAINER", "")
     
     # Get workspace information for file placement
-    workspace_name = os.getenv("CAI_WORKSPACE", "cai_default")
-    container_workspace_path = f"/workspace/workspaces/{workspace_name}"
+    workspace_name = os.getenv("CAI_WORKSPACE", None)    
+    if workspace_name:
+        container_workspace_path = f"/workspace/workspaces/{workspace_name}"
+    else:
+        container_workspace_path = os.getcwd()
     
     # Create code file
-    create_cmd = f"cat << 'EOF' > {full_filename}\n{code}\nEOF"
+    create_cmd = f"cat << 'EOF' > {container_workspace_path}/{full_filename}\n{code}\nEOF"
     result = run_command(create_cmd, ctf=ctf)
     if "error" in result.lower():
         return f"Failed to create code file: {result}"
     
     # Determine command to execute based on language
     if language.lower() == "python":
-        exec_cmd = f"python3 {full_filename}"
+        exec_cmd = f"python3 {container_workspace_path}/{full_filename}"
     elif language.lower() == "php":
-        exec_cmd = f"php {full_filename}"
+        exec_cmd = f"php {container_workspace_path}/{full_filename}"
     elif language.lower() in ["bash", "sh"]:
-        exec_cmd = f"bash {full_filename}"
+        exec_cmd = f"bash {container_workspace_path}/{full_filename}"
     elif language.lower() == "ruby":
-        exec_cmd = f"ruby {full_filename}"
+        exec_cmd = f"ruby {container_workspace_path}/{full_filename}"
     elif language.lower() == "perl":
-        exec_cmd = f"perl {full_filename}"
+        exec_cmd = f"perl {container_workspace_path}/{full_filename}"
     elif language.lower() == "golang" or language.lower() == "go":
         temp_dir = f"/tmp/go_exec_{filename}"
         run_command(f"mkdir -p {temp_dir}", ctf=ctf)
@@ -85,29 +88,29 @@ def execute_code(code: str = "", language: str = "python",
         run_command(f"cd {temp_dir} && go mod init temp", ctf=ctf)
         exec_cmd = f"cd {temp_dir} && go run main.go"
     elif language.lower() == "javascript":
-        exec_cmd = f"node {full_filename}"
+        exec_cmd = f"node {container_workspace_path}/{full_filename}"
     elif language.lower() == "typescript":
-        exec_cmd = f"ts-node {full_filename}"
+        exec_cmd = f"ts-node {container_workspace_path}/{full_filename}"
     elif language.lower() == "rust":
-        # For Rust, we need to compile first
-        run_command(f"rustc {full_filename} -o {filename}", ctf=ctf)
+        # For Rust, we need to compile first        
+        run_command(f"rustc {container_workspace_path}/{full_filename} -o {filename}", ctf=ctf)
         exec_cmd = f"./{filename}"
     elif language.lower() == "csharp":
         # For C#, compile with dotnet
-        run_command(f"dotnet build {full_filename}", ctf=ctf)
-        exec_cmd = f"dotnet run {full_filename}"
+        run_command(f"dotnet build {container_workspace_path}/{full_filename}", ctf=ctf)
+        exec_cmd = f"dotnet run {container_workspace_path}/{full_filename}"
     elif language.lower() == "java":
         # For Java, compile first
-        run_command(f"javac {full_filename}", ctf=ctf)
+        run_command(f"javac {container_workspace_path}/{full_filename}", ctf=ctf)
         exec_cmd = f"java {filename}"
     elif language.lower() == "kotlin":
         # For Kotlin, compile first
-        run_command(f"kotlinc {full_filename} -include-runtime -d {filename}.jar", ctf=ctf)
+        run_command(f"kotlinc {container_workspace_path}/{full_filename} -include-runtime -d {filename}.jar", ctf=ctf)
         exec_cmd = f"java -jar {filename}.jar"
     elif language.lower() == "solidity":
         # For Solidity, compile with solc
         run_command(f"mkdir -p {filename}_build", ctf=ctf)
-        exec_cmd = f"npx solc --bin --abi --optimize -o {filename}_build {full_filename}"
+        exec_cmd = f"npx solc --bin --abi --optimize -o {filename}_build {container_workspace_path}/{full_filename}"
     else:
         return f"Unsupported language: {language}"
 

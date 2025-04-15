@@ -15,42 +15,67 @@ from typing import Optional, List, Dict, Any
 # Global dictionary to store active sessions
 ACTIVE_SESSIONS = {}
 
-
 def _get_workspace_dir() -> str:
     """Determines the target workspace directory based on env var."""
-    base_dir = os.getenv("CAI_WORKSPACE_DIR", "workspaces")
-    # Ensure base_dir is absolute for host operations
-    base_dir = os.path.abspath(base_dir)
+    # Check if running in a container
+    active_container = os.getenv("CAI_ACTIVE_CONTAINER", "")
+    
+    if active_container:
+        # If in container, use container workspace path
+        workspace_name = os.getenv("CAI_WORKSPACE", None)
+        if workspace_name:
+            # Basic validation - allow alphanumeric, underscore, hyphen
+            if not all(c.isalnum() or c in ['_', '-'] for c in workspace_name):
+                print(color(f"Invalid CAI_WORKSPACE name '{workspace_name}'. "
+                            f"Using default.", fg="yellow"))
+                workspace_name = "cai_default"
+        else:
+            workspace_name = "/"
+            
+        # In container, use standard container workspace path
+        return f"/workspace/workspaces/{workspace_name}"
+    
+    # Not in container, check if CAI_WORKSPACE_DIR is set
+    elif os.getenv("CAI_WORKSPACE_DIR"):
+        base_dir = os.getenv("CAI_WORKSPACE_DIR", "workspaces")
+        # Ensure base_dir is absolute for host operations
+        base_dir = os.path.abspath(base_dir)
 
-    workspace_name = os.getenv("CAI_WORKSPACE")
-    if workspace_name:
-        # Basic validation - allow alphanumeric, underscore, hyphen
-        if not all(c.isalnum() or c in ['_', '-'] for c in workspace_name):
-            print(color(f"Invalid CAI_WORKSPACE name '{workspace_name}'. "
-                        f"Using default.", fg="yellow"))
+        workspace_name = os.getenv("CAI_WORKSPACE")
+        if workspace_name:
+            # Basic validation - allow alphanumeric, underscore, hyphen
+            if not all(c.isalnum() or c in ['_', '-'] for c in workspace_name):
+                print(color(f"Invalid CAI_WORKSPACE name '{workspace_name}'. "
+                            f"Using default.", fg="yellow"))
+                workspace_name = "cai_default"
+        else:
             workspace_name = "cai_default"
-    else:
-        workspace_name = "cai_default"
 
-    target_dir = os.path.join(base_dir, workspace_name)
-    # Ensure the directory exists on the host
-    try:
-        os.makedirs(target_dir, exist_ok=True)
-    except OSError as e:
-        print(color(f"Error creating host workspace directory '{target_dir}': {e}", fg="red")) # noqa E501
-        # Fallback to current directory if creation fails
+        target_dir = os.path.join(base_dir, workspace_name)
+        # Ensure the directory exists on the host
+        try:
+            os.makedirs(target_dir, exist_ok=True)
+        except OSError as e:
+            print(color(f"Error creating host workspace directory '{target_dir}': {e}", 
+                        fg="red"))  # noqa E501
+            # Fallback to current directory if creation fails
+            return os.getcwd()
+        return target_dir
+    else:
+        # If no workspace is set, use the current directory
         return os.getcwd()
-    return target_dir
 
 
 def _get_container_workspace_path() -> str:
     """Determines the target workspace path inside the container."""
-    workspace_name = os.getenv("CAI_WORKSPACE", "cai_default")
-    # Basic validation
-    if not all(c.isalnum() or c in ['_', '-'] for c in workspace_name):
-        workspace_name = "cai_default"
-    # Standard path inside CAI containers
-    return f"/workspace/workspaces/{workspace_name}"
+    workspace_name = os.getenv("CAI_WORKSPACE", None)    # Basic validation
+    if workspace_name:  
+        if not all(c.isalnum() or c in ['_', '-'] for c in workspace_name):
+            workspace_name = "cai_default"
+        # Standard path inside CAI containers
+        return f"/workspace/workspaces/{workspace_name}"
+    else:
+        return _get_workspace_dir()
 
 
 class ShellSession:  # pylint: disable=too-many-instance-attributes

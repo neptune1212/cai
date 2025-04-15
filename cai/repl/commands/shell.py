@@ -161,14 +161,17 @@ class ShellCommand(Command):
         
         # No container, run locally
         # Get workspace path from environment variable
-        workspace_name = os.getenv("CAI_WORKSPACE", "")
+        workspace_name = os.getenv("CAI_WORKSPACE", None)        
         effective_cwd = None
 
         # Check if workspace is set
         if workspace_name:
             # Construct the workspace path
-            base_dir = os.getenv("CAI_WORKSPACE_DIR", "workspaces")
-            workspace_path = os.path.join(base_dir, workspace_name)
+            base_dir = os.getenv("CAI_WORKSPACE_DIR", None)
+            if base_dir:
+                workspace_path = os.path.join(base_dir, workspace_name)
+            else:
+                workspace_path = os.getcwd()
             
             # Check if the workspace path exists
             if os.path.isdir(workspace_path):

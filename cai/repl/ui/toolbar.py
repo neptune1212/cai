@@ -59,8 +59,7 @@ def update_toolbar_in_background():
         os_version = sys_info['os_version']
 
         # Get current logical workspace name from environment variable
-        workspace_name = os.getenv("CAI_WORKSPACE", "")
-        
+        workspace_name = os.getenv("CAI_WORKSPACE", None)        
         # Get full workspace path
         workspace_path = ""
         if workspace_name:

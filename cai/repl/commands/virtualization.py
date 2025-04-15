@@ -681,8 +681,7 @@ class DockerManager:
         # Create workspace directory in container if needed
         try:
             # Get current workspace name
-            workspace_name = os.getenv("CAI_WORKSPACE", "cai_default")
-            
+            workspace_name = os.getenv("CAI_WORKSPACE", None)            
             # Make sure workspace name is valid
             if not all(c.isalnum() or c in ['_', '-'] for c in workspace_name):
                 workspace_name = "cai_default"
@@ -1906,8 +1905,7 @@ class WorkspaceCommand(Command):
     def handle_get(self, _: Optional[List[str]] = None) -> bool:
         """Display the current workspace name and directory information."""
         # Get workspace info
-        workspace_name = os.getenv("CAI_WORKSPACE", "cai_default")
-        workspace_dir = self._get_workspace_dir()
+        workspace_name = os.getenv("CAI_WORKSPACE", None)
         
         # Check if a container is active
         active_container = os.getenv("CAI_ACTIVE_CONTAINER", "")
@@ -1929,20 +1927,37 @@ class WorkspaceCommand(Command):
                         image = container_info[0].get("Config", {}).get("Image", "unknown")
                         env_type = "container"
                         env_name = f"Container ({image})"
+                        
+                        # For containers, if workspace is set, use container workspace path
+                        # otherwise use root directory
+                        if workspace_name:
+                            # This will create the workspace in the container if it doesn't exist
+                            workspace_dir = f"/workspace/workspaces/{workspace_name}"
+                            # Ensure the directory exists in the container
+                            subprocess.run(
+                                ["docker", "exec", active_container, "mkdir", "-p", workspace_dir],
+                                capture_output=True,
+                                check=False
+                            )
+                        else:
+                            workspace_dir = "/"
                 else:
                     env_type = "host"
                     env_name = "Host System (container not running)"
+                    workspace_dir = os.getcwd() if workspace_name is None else self._get_workspace_dir()
             except Exception:
                 env_type = "host"
                 env_name = "Host System (error inspecting container)"
+                workspace_dir = os.getcwd() if workspace_name is None else self._get_workspace_dir()
         else:
             env_type = "host"
             env_name = "Host System"
+            workspace_dir = os.getcwd() if workspace_name is None else self._get_workspace_dir()
         
         # Show workspace information
         console.print(
             Panel(
-                f"Current workspace: [bold green]{workspace_name}[/bold green]\n"
+                f"Current workspace: [bold green]{workspace_name or 'None'}[/bold green]\n"
                 f"Working in environment: [bold]{env_name}[/bold]\n"
                 f"Workspace directory: [bold]{workspace_dir}[/bold]",
                 title="Workspace Information",
@@ -2116,14 +2131,13 @@ class WorkspaceCommand(Command):
             The workspace directory path
         """
         base_dir = os.getenv("CAI_WORKSPACE_DIR", "workspaces")
-        workspace_name = os.getenv("CAI_WORKSPACE", "cai_default")
-        
+        workspace_name = os.getenv("CAI_WORKSPACE", None)        
         # Basic validation for workspace name
         if not all(c.isalnum() or c in ['_', '-'] for c in workspace_name):
             workspace_name = "cai_default"
             
         return os.path.join(base_dir, workspace_name)
-        
+
     def _list_workspace_contents(self, env_type: str, workspace_dir: str) -> None:
         """List the contents of the workspace.
         
@@ -2134,36 +2148,37 @@ class WorkspaceCommand(Command):
         console.print("\n[bold]Workspace Contents:[/bold]")
         
         if env_type == "container":
-            # Get current workspace name
-            workspace_name = os.getenv("CAI_WORKSPACE", "cai_default")
-            
-            # Use the workspace path inside the container
-            container_workspace_path = f"/workspace/workspaces/{workspace_name}"
-            
-            # List files in container
             active_container = os.getenv("CAI_ACTIVE_CONTAINER", "")
             
+            # For containers, use the workspace path provided
+            # This should already be the correct path from handle_get
+            
             # First ensure the workspace directory exists in the container
-            mkdir_cmd = ["docker", "exec", active_container, "mkdir", "-p", container_workspace_path]
-            mkdir_result = subprocess.run(
-                mkdir_cmd,
-                capture_output=True,
-                text=True,
-                check=False
-            )
-            
-            # Now list the contents
-            result = subprocess.run(
-                ["docker", "exec", active_container, "ls", "-la", container_workspace_path],
-                capture_output=True,
-                text=True,
-                check=False
-            )
-            
-            if result.returncode == 0:
-                console.print(result.stdout)
-            else:
-                console.print(f"[yellow]Error listing container files: {result.stderr}[/yellow]")
+            try:
+                mkdir_cmd = ["docker", "exec", active_container, "mkdir", "-p", workspace_dir]
+                subprocess.run(
+                    mkdir_cmd,
+                    capture_output=True,
+                    text=True,
+                    check=False
+                )
+                
+                # Now list the contents
+                result = subprocess.run(
+                    ["docker", "exec", active_container, "ls", "-la", workspace_dir],
+                    capture_output=True,
+                    text=True,
+                    check=False
+                )
+                
+                if result.returncode == 0:
+                    console.print(result.stdout)
+                else:
+                    console.print(f"[yellow]Error listing container files: {result.stderr}[/yellow]")
+                    # Fallback to host
+                    self._list_host_files(workspace_dir)
+            except Exception as e:
+                console.print(f"[yellow]Error accessing container: {str(e)}[/yellow]")
                 # Fallback to host
                 self._list_host_files(workspace_dir)
         else:
@@ -2203,7 +2218,7 @@ class WorkspaceCommand(Command):
         Returns:
             True if the subcommand was handled successfully, False otherwise
         """
-        workspace_name = os.getenv("CAI_WORKSPACE", "cai_default")
+        workspace_name = os.getenv("CAI_WORKSPACE", None)
         workspace_dir = self._get_workspace_dir()
         active_container = os.getenv("CAI_ACTIVE_CONTAINER", "")
         
@@ -2279,7 +2294,7 @@ class WorkspaceCommand(Command):
             return False
             
         command = " ".join(args)
-        workspace_name = os.getenv("CAI_WORKSPACE", "cai_default")
+        workspace_name = os.getenv("CAI_WORKSPACE", None)        
         workspace_dir = self._get_workspace_dir()
         active_container = os.getenv("CAI_ACTIVE_CONTAINER", "")
         
