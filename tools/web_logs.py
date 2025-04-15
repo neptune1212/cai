@@ -1,3 +1,11 @@
+"""
+This script is used to create a web-based log analysis dashboard.
+It allows you to visualize the logs in different ways and see the PyPI download statistics.
+
+Usage:
+    python tools/web_logs.py --enable-map <(tail -n 10 ./logs.txt)
+"""
+
 from flask import Flask, render_template
 import pandas as pd
 import matplotlib.pyplot as plt

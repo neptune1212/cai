@@ -55,6 +55,8 @@ A lightweight, ergonomic framework for building bug bounty-ready Cybersecurity A
   - [:nut\_and\_bolt: Install](#nut_and_bolt-install)
     - [OS X](#os-x)
     - [Ubuntu 24.04](#ubuntu-2404)
+    - [Ubuntu 20.04](#ubuntu-2004)
+    - [Windows WSL](#windows-wsl)
     - [:nut\_and\_bolt: Setup `.env` file](#nut_and_bolt-setup-env-file)
   - [:triangular\_ruler: Architecture:](#triangular_ruler-architecture)
     - [🔹 Agent](#-agent)
@@ -114,6 +116,8 @@ CAI is built on the following core principles:
 ```bash
 pip install cai-framework
 ```
+
+The following subsections provide a more detailed walkthrough on selected popular Operating Systems. Refer to the [Development](#development) section for developer-related install instructions.
 
 ### OS X
 ```bash
@@ -194,12 +198,7 @@ echo -e 'OPENAI_API_KEY="sk-1234"\nANTHROPIC_API_KEY=""\nOLLAMA=""\nPROMPT_TOOLK
 
 # Launch CAI
 cai  # first launch it can take up to 30 seconds
-
 ```
-
-
-
-Refer to the [Development](#development) section for dev. install instructions.
 
 ### :nut_and_bolt: Setup `.env` file
 
