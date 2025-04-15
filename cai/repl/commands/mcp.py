@@ -3,6 +3,11 @@ MCP (Model Context Protocol) command for CAI CLI.
 
 Provides commands for connecting to MCP servers, managing connections,
 and integrating MCP tools with CAI agents.
+
+Supports both SSE (Server-Sent Events) and STDIO transports:
+- SSE: For web-based servers that push updates over HTTP connections
+- STDIO: For local inter-process communication where client and server 
+  operate within the same system
 """
 
 # Standard library imports
@@ -65,17 +70,19 @@ def import_mcp_deps():
         import mcp
         from mcp import ClientSession
         from mcp.client.sse import sse_client
+        from mcp.client.stdio import stdio_client
+        from mcp import StdioServerParameters
         from mcp.types import Tool as McpTool
         debug_print("MCP dependencies imported successfully")
-        return mcp, ClientSession, sse_client, McpTool
+        return mcp, ClientSession, sse_client, stdio_client, StdioServerParameters, McpTool
     except ImportError as e:
         console.print(f"[red]Error importing MCP dependencies: {e}[/red]")
         console.print("[yellow]Install with: pip install mcp-sdk[/yellow]")
-        return None, None, None, None
+        return None, None, None, None, None, None
     except Exception as e:
         console.print(f"[red]Unexpected error importing MCP dependencies: {e}[/red]")
         traceback.print_exc()
-        return None, None, None, None
+        return None, None, None, None, None, None
 
 # --- Thread-Safe Async Execution ---
 def run_coroutine_in_loop(coro, loop, timeout=None):
@@ -105,9 +112,23 @@ def run_coroutine_in_loop(coro, loop, timeout=None):
         raise e
 
 # --- Connection Management Thread ---
-def manage_connection(label: str, server_url: str, result_queue: queue.Queue, shutdown_event: threading.Event):
-    """Runs in a separate thread to manage an MCP connection."""
-    mcp, ClientSession, sse_client, McpTool = import_mcp_deps()
+def manage_connection(label: str, server_url: str, result_queue: queue.Queue, 
+                     shutdown_event: threading.Event, 
+                     transport_type: str = "sse",
+                     stdio_command: str = None,
+                     stdio_args: List[str] = None):
+    """Runs in a separate thread to manage an MCP connection.
+    
+    Args:
+        label: Label for the connection
+        server_url: URL for SSE connections or script path for STDIO
+        result_queue: Queue to report results back to main thread
+        shutdown_event: Event to signal shutdown
+        transport_type: Either "sse" or "stdio"
+        stdio_command: Command to execute for STDIO transport (e.g. "python")
+        stdio_args: Arguments for the STDIO command
+    """
+    mcp, ClientSession, sse_client, stdio_client, StdioServerParameters, McpTool = import_mcp_deps()
     if not mcp:
         result_queue.put(Exception("MCP dependencies not found"))
         return
@@ -126,14 +147,30 @@ def manage_connection(label: str, server_url: str, result_queue: queue.Queue, sh
             client_cm = None
             session_cm = None
             try:
-                debug_print(f"[{label}] Attempting to connect to {server_url}")
-                client_cm = sse_client(server_url)
-                debug_print(f"[{label}] Entering sse_client context")
+                if transport_type == "sse":
+                    debug_print(f"[{label}] Attempting to connect to SSE server at {server_url}")
+                    client_cm = sse_client(server_url)
+                    debug_print(f"[{label}] Entering sse_client context")
+                elif transport_type == "stdio":
+                    debug_print(f"[{label}] Attempting to start STDIO server: {stdio_command} {stdio_args}")
+                    if not stdio_command:
+                        result_queue.put(Exception("STDIO transport requires a command"))
+                        return
+                    
+                    server_params = StdioServerParameters(
+                        command=stdio_command,
+                        args=stdio_args or []
+                    )
+                    client_cm = stdio_client(server_params)
+                    debug_print(f"[{label}] Entering stdio_client context")
+                else:
+                    result_queue.put(Exception(f"Unknown transport type: {transport_type}"))
+                    return
                 
                 # Capture any exceptions during connection and don't let them propagate to user
                 try:
                     streams = await asyncio.wait_for(client_cm.__aenter__(), timeout=15)
-                    debug_print(f"[{label}] SSE connection established, streams obtained")
+                    debug_print(f"[{label}] Connection established, streams obtained")
                 except asyncio.TimeoutError:
                     debug_print(f"[{label}] Connection timeout")
                     result_queue.put(TimeoutError(f"Connection to server '{label}' timed out"))
@@ -178,6 +215,7 @@ def manage_connection(label: str, server_url: str, result_queue: queue.Queue, sh
                             'status': 'connected',
                             'client_cm': client_cm,  # Store context managers for cleanup
                             'session_cm': session_cm,
+                            'transport_type': transport_type,
                         })
                     else:  # Unloaded before connection finished
                         debug_print(f"[{label}] Connection canceled (unload called before connecting)")
@@ -239,11 +277,11 @@ def manage_connection(label: str, server_url: str, result_queue: queue.Queue, sh
                         debug_print(f"[{label}] Error closing ClientSession: {e_sess}")
                 if client_cm:
                     try:
-                        debug_print(f"[{label}] Exiting sse_client context")
+                        debug_print(f"[{label}] Exiting client context")
                         await client_cm.__aexit__(None, None, None)
-                        debug_print(f"[{label}] sse_client context closed")
-                    except Exception as e_sse:
-                        debug_print(f"[{label}] Error closing sse_client: {e_sse}")
+                        debug_print(f"[{label}] Client context closed")
+                    except Exception as e_client:
+                        debug_print(f"[{label}] Error closing client: {e_client}")
                 # Clear global state associated with this label
                 with mcp_lock:
                     if label in active_mcp_servers:
@@ -414,7 +452,8 @@ class McpCommand(Command):
         )
 
         self._subcommands = {
-            "load": "Connect to an MCP server: load {url} {label}",
+            "load": "Connect to an MCP server via SSE: load {url} {label}",
+            "stdio": "Connect to an MCP server via STDIO: stdio {label} {command} [args...]",
             "unload": "Disconnect from an MCP server: unload {label}",
             "add": "Add tools from an MCP server to an agent: add {label} {agent_name}",
             "list": "List active MCP connections and tools"
@@ -442,6 +481,7 @@ class McpCommand(Command):
 
         handler_map = {
             "load": self.handle_load,
+            "stdio": self.handle_stdio,
             "unload": self.handle_unload,
             "add": self.handle_add,
             "list": self.handle_list,
@@ -463,7 +503,8 @@ class McpCommand(Command):
 
             table = Table(title="Active MCP Connections")
             table.add_column("Label", style="green")
-            table.add_column("URL", style="blue")
+            table.add_column("URL/Command", style="blue")
+            table.add_column("Transport", style="cyan")
             table.add_column("Status", style="magenta")
             table.add_column("Tools", style="cyan")
 
@@ -473,7 +514,19 @@ class McpCommand(Command):
             for label, data in servers_copy.items():
                 tools_count = len(mcp_tools_cache.get(label, []))
                 status = data.get('status', 'unknown')
-                table.add_row(label, data['url'], status, str(tools_count))
+                transport = data.get('transport_type', 'sse')
+                url_or_cmd = data.get('url', 'unknown')
+                
+                # For STDIO, show a more friendly representation
+                if transport == 'stdio':
+                    cmd = data.get('stdio_command', '')
+                    args = ' '.join(data.get('stdio_args', []))
+                    if args:
+                        url_or_cmd = f"{cmd} {args}"
+                    else:
+                        url_or_cmd = cmd
+                
+                table.add_row(label, url_or_cmd, transport, status, str(tools_count))
 
             console.print(table)
             
@@ -499,13 +552,13 @@ class McpCommand(Command):
         return True
 
     def handle_load(self, args: Optional[List[str]] = None, messages: Optional[List[Dict]] = None) -> bool:
-        """Connect to an MCP server using a background thread."""
+        """Connect to an MCP server using SSE transport in a background thread."""
         debug_print(f"Executing 'load' subcommand with args: {args}")
         if not args or len(args) != 2:
             console.print("[red]Usage: /mcp load {server_url} {label}[/red]")
             return False
 
-        mcp, _, _, _ = import_mcp_deps()
+        mcp, _, _, _, _, _ = import_mcp_deps()
         if not mcp: return False
 
         server_url, label = args[0], args[1]
@@ -532,6 +585,7 @@ class McpCommand(Command):
             thread = threading.Thread(
                 target=manage_connection,
                 args=(label, server_url, result_queue, shutdown_event),
+                kwargs={'transport_type': 'sse'},
                 daemon=True  # Allows main program to exit even if threads are running
             )
 
@@ -543,9 +597,10 @@ class McpCommand(Command):
                 'shutdown_event': shutdown_event,
                 'session': None,  # Will be set by the thread
                 'loop': None,  # Will be set by the thread
+                'transport_type': 'sse'
             }
 
-        console.print(f"Starting connection to MCP server '{label}' in background...")
+        console.print(f"Starting SSE connection to MCP server '{label}' in background...")
         thread.start()
         debug_print(f"Connection thread for '{label}' started.")
 
@@ -567,7 +622,7 @@ class McpCommand(Command):
                 return False
 
             if isinstance(result, dict) and result.get('status') == 'success':
-                console.print(f"[green]Successfully connected to MCP server '{label}' ({result.get('tools_count', 0)} tools found).[/green]")
+                console.print(f"[green]Successfully connected to SSE MCP server '{label}' ({result.get('tools_count', 0)} tools found).[/green]")
                 # Status already updated by the thread
                 return True
             else:
@@ -804,6 +859,118 @@ class McpCommand(Command):
             console.print(f"[red]Encountered {error_count} errors while processing tools.[/red]")
         
         return True
+
+    def handle_stdio(self, args: Optional[List[str]] = None, messages: Optional[List[Dict]] = None) -> bool:
+        """Connect to an MCP server using STDIO transport."""
+        debug_print(f"Executing 'stdio' subcommand with args: {args}")
+        if not args or len(args) < 2:
+            console.print("[red]Usage: /mcp stdio {label} {command} [args...][/red]")
+            console.print("[yellow]Example: /mcp stdio myserver python server.py[/yellow]")
+            return False
+
+        mcp, _, _, _, _, _ = import_mcp_deps()
+        if not mcp: return False
+
+        label = args[0]
+        command = args[1]
+        command_args = args[2:] if len(args) > 2 else []
+        
+        debug_print(f"Label: {label}, Command: {command}, Args: {command_args}")
+
+        with mcp_lock:
+            if label in active_mcp_servers:
+                # Allow reloading if disconnected? Maybe add a 'force' flag later.
+                if active_mcp_servers[label].get('status') != 'disconnected':
+                    console.print(f"[red]Error: Label '{label}' is already in use by an active or connecting connection.[/red]")
+                    return False
+                else:
+                    debug_print(f"Retrying connection for previously disconnected label '{label}'.")
+
+            result_queue = queue.Queue()
+            shutdown_event = threading.Event()
+
+            thread = threading.Thread(
+                target=manage_connection,
+                args=(label, command, result_queue, shutdown_event),
+                kwargs={
+                    'transport_type': 'stdio',
+                    'stdio_command': command,
+                    'stdio_args': command_args
+                },
+                daemon=True  # Allows main program to exit even if threads are running
+            )
+
+            # Store preliminary info (thread-safe)
+            active_mcp_servers[label] = {
+                'url': f"stdio://{command}",  # Use a pseudo-URL for display purposes
+                'thread': thread,
+                'status': 'connecting',
+                'shutdown_event': shutdown_event,
+                'session': None,  # Will be set by the thread
+                'loop': None,  # Will be set by the thread
+                'transport_type': 'stdio',
+                'stdio_command': command,
+                'stdio_args': command_args
+            }
+
+        console.print(f"Starting STDIO connection to MCP server '{label}' in background...")
+        thread.start()
+        debug_print(f"Connection thread for '{label}' started.")
+
+        # Wait for result from the connection thread (with timeout)
+        try:
+            # Increased timeout to allow for connection and initialization
+            result = result_queue.get(timeout=45)
+            debug_print(f"Result received from queue for '{label}': {result}")
+
+            if isinstance(result, Exception):
+                # Instead of re-raising, just show a user-friendly message
+                error_type = type(result).__name__
+                error_msg = str(result)
+                console.print(f"[red]Connection to MCP server '{label}' failed: {error_msg}[/red]")
+                
+                with mcp_lock:
+                    if label in active_mcp_servers:
+                        active_mcp_servers[label]['status'] = 'failed'
+                return False
+
+            if isinstance(result, dict) and result.get('status') == 'success':
+                console.print(f"[green]Successfully connected to STDIO MCP server '{label}' ({result.get('tools_count', 0)} tools found).[/green]")
+                # Status already updated by the thread
+                return True
+            else:
+                # Handle potential cancellation or unexpected None result
+                console.print(f"[red]Connection for '{label}' did not complete properly (may have been canceled).[/red]")
+                with mcp_lock:  # Ensure cleanup if thread signaled cancellation implicitly
+                    if label in active_mcp_servers:
+                        active_mcp_servers[label]['status'] = 'failed'
+                return False
+
+        except KeyboardInterrupt:
+            console.print(f"\n[yellow]Connection attempt to '{label}' was interrupted.[/yellow]")
+            # Signal the thread to shutdown
+            with mcp_lock:
+                if label in active_mcp_servers:
+                    active_mcp_servers[label]['status'] = 'canceled'
+                    if active_mcp_servers[label].get('shutdown_event'):
+                        active_mcp_servers[label]['shutdown_event'].set()
+            return False
+        except queue.Empty:
+            console.print(f"[red]Timeout: No response received from connection to '{label}' after 45s.[/red]")
+            # Signal the thread to shutdown if it's still running
+            with mcp_lock:
+                if label in active_mcp_servers:
+                    active_mcp_servers[label]['status'] = 'timeout'
+                    if active_mcp_servers[label].get('shutdown_event'):
+                        active_mcp_servers[label]['shutdown_event'].set()
+            return False
+        except Exception as e:
+            # Generic handler for any other exceptions
+            console.print(f"[red]Error connecting to MCP server '{label}'[/red]")
+            with mcp_lock:
+                if label in active_mcp_servers:
+                    active_mcp_servers[label]['status'] = 'failed'
+            return False
 
 # Register the command
 register_command(McpCommand())

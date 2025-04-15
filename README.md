@@ -481,9 +481,9 @@ CAI>
 
 That should initialize CAI and provide a prompt to execute any security task you want to perform. The navigation bar at the bottom displays important system information. This information helps you understand your environment while working with CAI.
 
+Here's a quick [demo video](https://asciinema.org/a/zm7wS5DA2o0S9pu1Tb44pnlvy) to help you get started with CAI. We'll walk through the basic steps — from launching the tool to running your first AI-powered task in the terminal. Whether you're a beginner or just curious, this guide will show you how easy it is to begin using CAI.
+
 From here on, type on `CAI` and start your security exercise. Best way to learn is by example:
-
-
 
 ### Environment Variables
 For using private models, you are given a [`.env.example`](.env.example) file. Copy it and rename it as `.env`. Fill in your corresponding API keys, and you are ready to use CAI.
@@ -520,9 +520,21 @@ For using private models, you are given a [`.env.example`](.env.example) file. C
 
 ### MCP
 
+CAI supports the Model Context Protocol (MCP) for integrating external tools and services with AI agents. MCP is supported via two transport mechanisms:
+
+1. **SSE (Server-Sent Events)** - For web-based servers that push updates over HTTP connections:
 ```bash
 CAI>/mcp load http://localhost:9876/sse burp
-CAI> /mcp add burp redteam_agent
+```
+
+2. **STDIO (Standard Input/Output)** - For local inter-process communication:
+```bash
+CAI>/mcp stdio myserver python mcp_server.py
+```
+
+Once connected, you can add the MCP tools to any agent:
+```bash
+CAI>/mcp add burp redteam_agent
 Adding tools from MCP server 'burp' to agent 'Red Team Agent'...
                                  Adding tools to Red Team Agent
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
@@ -554,6 +566,11 @@ CAI>/agent 13
 CAI>Create a repeater tab
 ```
 
+You can list all active MCP connections and their transport types:
+```bash
+CAI>/mcp list
+```
+
 https://github.com/user-attachments/assets/386a1fd3-3469-4f84-9396-2a5236febe1f
 
 
@@ -574,30 +591,9 @@ pre-commit # files staged
 pre-commit run --all-files # all files
 ```
 
-### Optional Requirements: [caiextensions](https://gitlab.com/aliasrobotics/alias_research/caiextensions)
+### Optional Requirements: caiextensions
 
-| Extension | Install command | Description | Usage |
-|-----------|---------|-------------|-----------|
-| [Report](https://gitlab.com/aliasrobotics/alias_research/caiextensions/caiextensions-report) | `pip install -e .[report]` | Generates a Report after running CAI against any target. Use the environment variable `CAI_REPORT` to specify the type of report: **generic pentesting report** `CAI_REPORT=pentesting` or **NIS2 report** `CAI_REPORT=nis2` | ```CAI_REPORT=pentesting CAI_MODEL="qwen2.5:72b" python3 cai/cli.py``` |
-| [Benchmarking](https://gitlab.com/aliasrobotics/alias_research/caiextensions/pentestperf) | `pip install -e .[pentestperf]` | Allows running CAI against dockerized Capture The Flag (CTF) challenges. Use environment variables (`CTF_NAME` and `CTF_INSIDE`) to run any CTF from [this list](https://gitlab.com/aliasrobotics/alias_research/caiextensions/pentestperf/-/blob/main/pentestperf/ctf-jsons/ctf_configs.jsonl)  | ```CTF_NAME="picoctf_static_flag" CTF_INSIDE="true" python3 cai/cli.py``` |
-| [Memory](https://gitlab.com/aliasrobotics/alias_research/caiextensions/caiextensions-memory) | `pip install -e .[memory]` | Allows using previous CAI runs and generated artifacts (e.g. scripts) for future runs |  N/A: If the same CTF or problem is already solved in a previous run, and there are any artifacts in the repository, CAI will automatically use them for future runs |
-| [Platform](https://gitlab.com/aliasrobotics/alias_research/caiextensions/caiextensions-platform) | `pip install -e .[platform]` | Allows running CAI against CTF platforms (currently only working for Hack The Box) | Run the command on the right, and dive into the UI Platform: <ul><li>```/p htb list``` to list machines</li><li>```/p htb connect``` to connect to the VPN</li><li>```/p htb spawn <machine_name>``` to start cracking your first machine</li></ul> |
-
-<details>
-<summary><b>How to install caiextensions?</b></summary>
-
-```bash
-git clone https://gitlab.com/aliasrobotics/alias_research/caiextensions/caiextensions-report.git
-```
-```bash
-cd cai
-```
-```bash
-pip3 install -e .[report]
-```
-
-</details>
-
+Currently, the extensions are not available as they have been (largely) integrated or are in the process of being integrated into the core architecture. We aim to have everything converge in version 0.4.x. Coming soon!
 
 ### :information_source: Usage Data Collection
 
@@ -797,7 +793,7 @@ If you want to cite our work, please use the following format
 ```bibtex
 @misc{mayoralvilches2025caiopenbugbountyready,
       title={CAI: An Open, Bug Bounty-Ready Cybersecurity AI},
-      author={Víctor Mayoral-Vilches and Luis Javier Navarrete-Lozano and María Sanz-Gómez and Lidia Salas Espejo and Martiño Crespo-Álvarez and Francisco Oca-Gonzalez and Francesco Balassone and Alfonso Glera-Picón and Unai Ayucar-Carbajo and Endika Gil-Uriarte},
+      author={Víctor Mayoral-Vilches and Luis Javier Navarrete-Lozano and María Sanz-Gómez and Lidia Salas Espejo and Martiño Crespo-Álvarez and Francisco Oca-Gonzalez and Francesco Balassone and Alfonso Glera-Picón and Unai Ayucar-Carbajo and Jon Ander Ruiz-Alcalde and Stefan Rass and Martin Pinzger and Endika Gil-Uriarte},
       year={2025},
       eprint={2504.06017},
       archivePrefix={arXiv},
