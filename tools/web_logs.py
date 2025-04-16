@@ -73,7 +73,8 @@ class Visualizations:
         
         # Plot line chart for cumulative counts
         cumulative_counts = daily_counts.cumsum()
-        cumulative_counts.plot(kind='line', color='orange', secondary_y=True, ax=ax, label='Cumulative Count')
+        total_cumulative_count = cumulative_counts.iloc[-1]  # Get the total cumulative count
+        cumulative_counts.plot(kind='line', color='orange', secondary_y=True, ax=ax, label=f'Cumulative Count (Total: {total_cumulative_count})')
         
         # Add vertical red line on 2025-04-09
         if '2025-04-09' in daily_counts.index:
@@ -301,7 +302,7 @@ def create_pypi_plot():
     
     # Plot total cumulative downloads on the left axis
     ax1.plot(daily_downloads['date'], daily_downloads['cumulative_downloads'], 
-               linewidth=3, color='black', label='Total Downloads (without mirrors)')
+               linewidth=3, color='black', label=f'Total Downloads (without mirrors): {without_mirrors_total:,}')
     
     # Define color mapping for systems
     color_map = {
