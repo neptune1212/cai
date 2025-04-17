@@ -20,6 +20,7 @@ from typing import List, Tuple
 # Third-party imports
 from dotenv import load_dotenv  # pylint: disable=import-error # noqa: E501
 import litellm  # pylint: disable=import-error
+from litellm import get_supported_openai_params
 from mako.template import Template  # pylint: disable=import-error
 from wasabi import color  # pylint: disable=import-error
 
@@ -267,7 +268,6 @@ class CAI:  # pylint: disable=too-many-instance-attributes
             "stream": stream,
         }
         if tools:
-            create_params["parallel_tool_calls"] = agent.parallel_tool_calls
             create_params["tools"] = tools
             create_params["tool_choice"] = agent.tool_choice
             if "gemini" in create_params["model"]:
@@ -299,11 +299,15 @@ class CAI:  # pylint: disable=too-many-instance-attributes
         # NOTE 2: See further details on reasoners @
         # https://platform.openai.com/docs/guides/reasoning
         #
-        if any(x in agent.model for x in ["o1", "o3"]):
-            create_params.pop("temperature", None)
+        if any(x in agent.model for x in [
+            "o1", 
+            "o3",
+            "o4"
+        ]):
             create_params.pop("parallel_tool_calls", None)
             # See https://platform.openai.com/docs/api-reference/chat/create#chat-create-reasoning_effort  # noqa: E501  # pylint: disable=line-too-long
             create_params["reasoning_effort"] = agent.reasoning_effort
+            create_params["temperature"] = 1
         if any(x in agent.model for x in ["claude"]): 
             litellm.modify_params = True
         if (any(x in agent.model for x in ["claude", "thinking"]) and 
