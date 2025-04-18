@@ -26,18 +26,29 @@ class Agent(BaseModel):  # pylint: disable=too-few-public-methods
     """
 
     name: str = "Agent"
-    model: str = "qwen2.5:14b"  # Default model
+    model: str = Field(default="qwen2.5:14b")  # Default model
     instructions: Union[str, Callable[[], str]] = "You are a helpful agent."
     functions: List[AgentFunction] = []
     description: str = None
     tool_choice: str = None
     parallel_tool_calls: bool = False
     structured_output_class: Optional[type] = None
-    reasoning_effort: Optional[str] = "low"  # "low", "medium", "high"
+    reasoning_effort: Optional[str] = "high"  # "low", "medium", "high"
 
     # the agentic pattern associated
     #    see cai/agents/__init__.py for more information
     pattern: Optional[str] = None
+    
+    def __getattribute__(self, name):
+        """
+        Override attribute access to check for environment variable when model is accessed.
+        """
+        if name == "model":
+            env_model = os.getenv("CAI_MODEL")
+            if env_model:
+                return env_model
+
+        return super().__getattribute__(name)
 
 class Response(BaseModel):  # pylint: disable=too-few-public-methods
     """
