@@ -10,6 +10,7 @@ This agent specializes in:
 - Lateral movement detection: Spotting signs of attackers moving through the network
 - Security event correlation: Connecting related security events across the network
 - Malicious traffic identification: Detecting command and control traffic and data exfiltration
+- Continuous traffic monitoring: Real-time analysis of ongoing network traffic captures
 
 Objectives:
 - Incident root cause analysis: Identifying the original cause of security incidents
@@ -33,6 +34,15 @@ from cai.tools.reconnaissance.exec_code import (  # pylint: disable=import-error
 from cai.tools.web.search_web import (  # pylint: disable=import-error # noqa: E501
     make_web_search_with_explanation,
 )
+# Import remote traffic capture tools
+
+from cai.tools.network.capture_traffic import (
+    capture_remote_traffic,
+    remote_capture_session
+)
+
+
+
 # Prompts
 network_security_analyzer_prompt = load_prompt_template("prompts/system_network_analyzer.md")
 # Define functions list based on available API keys
@@ -40,6 +50,8 @@ functions = [
     generic_linux_command,
     run_ssh_command_with_credentials,
     execute_code,
+    capture_remote_traffic,
+    remote_capture_session,
 ]
 
 if os.getenv('PERPLEXITY_API_KEY'):
