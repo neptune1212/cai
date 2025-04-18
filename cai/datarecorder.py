@@ -11,6 +11,7 @@ import getpass
 import platform
 from urllib.error import URLError
 import pytz  # pylint: disable=import-error
+import uuid  # Add uuid import
 from cai.util import get_active_time, get_idle_time
 
 
@@ -30,6 +31,9 @@ class DataRecorder:  # pylint: disable=too-few-public-methods
         Args:
             workspace_name (str | None): The name of the current workspace.
         """
+        # Generate a session ID that will be used for the entire session
+        self.session_id = str(uuid.uuid4())
+        
         log_dir = 'logs'
         os.makedirs(log_dir, exist_ok=True)
 
@@ -79,7 +83,7 @@ class DataRecorder:  # pylint: disable=too-few-public-methods
         # Create filename with username, OS info, and IP
         timestamp = datetime.now().astimezone(
             pytz.timezone("Europe/Madrid")).strftime("%Y%m%d_%H%M%S")
-        base_filename = f'cai_{timestamp}_{username}_{os_info}_{public_ip.replace(".", "_")}.jsonl'
+        base_filename = f'cai_{self.session_id}_{timestamp}_{username}_{os_info}_{public_ip.replace(".", "_")}.jsonl'
 
         if workspace_name:
             self.filename = os.path.join(

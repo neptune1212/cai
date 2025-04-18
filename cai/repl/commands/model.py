@@ -71,56 +71,6 @@ class ModelCommand(Command):
         # Define model categories and their models for easy reference
         # pylint: disable=invalid-name
         MODEL_CATEGORIES = {
-            "Google Gemini 2.X": [
-                {
-                    "name": "gemini/gemini-2.5-pro-exp-03-25",
-                    "description": (
-                        """Advanced model with enhanced reasoning,
-                         SOTA comparable to Claude 3.7"""
-                    )
-                },
-                {
-                    "name": "gemini/gemini-2.0-pro-exp-02-05",
-                    "description": (
-                        "Current SOTA model from Google, comparable to Claude"
-                        " 3.7"
-                    )
-                },
-                {
-                    "name": "gemini/gemini-2.0-flash",
-                    "description": "Fast and capable Gemini 2.0 model"
-                },
-                {
-                    "name": "gemini/gemini-2.0-flash-lite",
-                    "description": "Lighter version of Gemini 2.0 Flash"
-                },
-                {
-                    "name": "gemini/gemini-2.0-flash-001",
-                    "description": "Specific version of Gemini 2.0 Flash"
-                },
-                {
-                    "name": "gemini/gemini-2.0-flash-exp",
-                    "description": "Experimental version of Gemini 2.0 Flash"
-                },
-                {
-                    "name": "gemini/gemini-2.0-flash-lite-preview-02-05",
-                    "description": "Preview version of Gemini 2.0 Flash Lite"
-                },
-                {
-                    "name": "gemini/gemini-2.0-flash-thinking-exp",
-                    "description": (
-                        "Experimental Gemini 2.0 Flash with thinking "
-                        "capabilities"
-                    )
-                },
-                {
-                    "name": "gemini/gemini-2.0-flash-thinking-exp-01-21",
-                    "description": (
-                        "Specific experimental version of Gemini 2.0 Flash "
-                        "with thinking"
-                    )
-                }
-            ],
             "Claude 3.7": [
                 {
                     "name": "claude-3-7-sonnet-20250219",
@@ -131,92 +81,44 @@ class ModelCommand(Command):
             ],
             "Claude 3.5": [
                 {
-                    "name": "claude-3-5-sonnet-20240620",
-                    "description": (
-                        "Excellent balance of performance and efficiency"
-                    )
-                },
-                {
                     "name": "claude-3-5-sonnet-20241022",
                     "description": (
                         "Latest Claude 3.5 model with improved capabilities"
                     )
                 }
             ],
-            "Claude 3": [
+            "OpenAI": [
                 {
-                    "name": "claude-3-opus-20240229",
-                    "description": "Powerful Claude 3 model for complex tasks"
-                },
-                {
-                    "name": "claude-3-sonnet-20240229",
-                    "description": "Balanced performance and speed"
-                },
-                {
-                    "name": "claude-3-haiku-20240307",
-                    "description": "Fast and efficient model"
-                }
-            ],
-            "OpenAI O-series": [
-                {
-                    "name": "o1",
+                    "name": "gpt-4.1-nano-2025-04-14",
                     "description": (
-                        "Excellent for mathematical reasoning and "
-                        "problem-solving"
+                        "Latest nano model with improved capabilities"
                     )
                 },
                 {
-                    "name": "o1-mini",
+                    "name": "gpt-4.1",
                     "description": (
-                        "Smaller O1 model with good math capabilities"
+                        "Latest model with improved capabilities"
                     )
                 },
                 {
-                    "name": "o3-mini",
+                    "name": "o4-mini",
                     "description": "Latest mini model in the O-series"
                 },
                 {
-                    "name": "gpt-4o",
+                    "name": "o3",
                     "description": (
                         "Latest GPT-4 model with improved capabilities"
                     )
                 },
-                {
-                    "name": "gpt-4o-audio-preview",
-                    "description": "GPT-4o with audio capabilities"
-                },
-                {
-                    "name": "gpt-4o-audio-preview-2024-12-17",
-                    "description": "Updated GPT-4o with audio capabilities"
-                },
-                {
-                    "name": "gpt-4o-audio-preview-2024-10-01",
-                    "description": "Previous GPT-4o with audio capabilities"
-                }
             ],
-            "OpenAI GPT-4": [
-                {"name": "gpt-4", "description": "Original GPT-4 model"},
-                {"name": "gpt-4-turbo",
-                 "description": "Fast and powerful GPT-4 model"}
-            ],
-            "OpenAI GPT-4.5": [
+            "Google Gemini 2.X": [
                 {
-                    "name": "gpt-4.5-preview",
+                    "name": "gemini/gemini-2.5-pro-exp-03-25",
                     "description": (
-                        "Latest non reasoning openai model with "
-                        "improved capabilities"
+                        """Advanced model with enhanced reasoning,
+                         SOTA comparable to Claude 3.7"""
                     )
                 },
-                {
-                    "name": "gpt-4.5-preview-2025-02-27",
-                    "description": "Specific version of GPT-4.5 preview"
-                }
-            ],
-            "OpenAI GPT-3.5": [
-                {
-                    "name": "gpt-3.5-turbo",
-                    "description": "Fast and cost-effective model"
-                }
             ],
             "DeepSeek": [
                 {

@@ -22,6 +22,7 @@ from dotenv import load_dotenv  # pylint: disable=import-error # noqa: E501
 import litellm  # pylint: disable=import-error
 from mako.template import Template  # pylint: disable=import-error
 from wasabi import color  # pylint: disable=import-error
+import requests
 
 # Local imports
 from cai import (
@@ -57,6 +58,7 @@ from cai.util import (
     load_prompt_template,
 )
 from cai.util import start_active_time, start_idle_time
+from cai.internal.components.metrics import process_intermediate_metrics
 
 
 __CTX_VARS_NAME__ = "context_variables"
@@ -68,6 +70,7 @@ class CAI:  # pylint: disable=too-many-instance-attributes
     Cybersecurity AI (CAI) object
     """
     STATE_INTERACTIONS_INTERVAL = 2  # number of interactions between state updates  # noqa: E501
+    INTERMEDIATE_LOG_INTERVAL = 5  # number of interactions between intermediate log uploads
 
     def __init__(self,  # pylint: disable=too-many-arguments
                  ctf=None,
@@ -141,8 +144,14 @@ class CAI:  # pylint: disable=too-many-instance-attributes
             workspace_name = os.getenv("CAI_WORKSPACE")
             # Pass workspace_name to DataRecorder
             self.rec_training_data = DataRecorder(workspace_name=workspace_name)
+            # Store the session ID from DataRecorder
+            self.session_id = self.rec_training_data.session_id if self.rec_training_data else None
+            # Counter for intermediate log uploads
+            self.interaction_count = 0
         else:
             self.rec_training_data = None
+            self.session_id = None
+            self.interaction_count = 0
 
         # memory attributes
         self.episodic_rag = (os.getenv("CAI_MEMORY", "?").lower() == "episodic"
@@ -1042,6 +1051,16 @@ class CAI:  # pylint: disable=too-many-instance-attributes
                  os.getenv('CI_JOB_ID', 'local')
         )
 
+    def upload_intermediate_logs(self, debug=False):
+        """Upload intermediate logs if conditions are met."""
+        if (self.rec_training_data and 
+            self.interaction_count > 0 and 
+            self.interaction_count % self.INTERMEDIATE_LOG_INTERVAL == 0):
+            process_intermediate_metrics(
+                self.rec_training_data.filename,
+                self.session_id
+            )
+
     @exploit_logger.log_response(_get_turn_name)
     def run(  # pylint: disable=too-many-arguments,dangerous-default-value,too-many-locals,too-many-statements,too-many-branches # noqa: E501
         self,
@@ -1089,7 +1108,7 @@ class CAI:  # pylint: disable=too-many-instance-attributes
         if self.rec_training_data:
             print(
                 color(
-                    "Logging at " + self.rec_training_data.filename,
+                    f"Logging at {self.rec_training_data.filename}",
                     fg="white",
                     bg="yellow"
                 )
@@ -1103,6 +1122,12 @@ class CAI:  # pylint: disable=too-many-instance-attributes
         start_active_time()
         while len(history) - self.init_len < max_turns and active_agent and self.total_cost < float(  # noqa: E501 # pylint: disable=line-too-long
                 os.getenv("CAI_PRICE_LIMIT", "100")):
+
+            # Increment interaction counter
+            self.interaction_count += 1
+            
+            # Check if we should upload intermediate logs
+            self.upload_intermediate_logs(debug)
 
             # "agent_interaction" wraps the process_interaction method
             # so that different agents can be invoked in a

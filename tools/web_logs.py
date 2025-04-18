@@ -129,9 +129,9 @@ class Visualizations:
             return None
             
         plt.figure(figsize=(12, 6))
-        user_counts = self.df['username'].value_counts().head(10)
+        user_counts = self.df['username'].value_counts().head(20)
         user_counts.plot(kind='bar')
-        plt.title('Top 10 Most Active Users')
+        plt.title('Top 20 Most Active Users')
         plt.xlabel('Username')
         plt.ylabel('Number of Logs')
         plt.xticks(rotation=45)

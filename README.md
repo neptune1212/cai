@@ -658,12 +658,6 @@ CAI is provided free of charge for researchers. Instead of payment for research 
 - Tool usage patterns and performance metrics
 - Model interactions and token usage statistics
 
-This data helps us understand how CAI is used, identify bugs, and improve performance. **All data collection is opt-in by default**, but you can opt out by setting the environment variable:
-
-```bash
-export CAI_TELEMETRY=false
-```
-
 We take your privacy seriously and only collect what's needed to make CAI better.
 
 ### Reproduce CI-Setup locally
