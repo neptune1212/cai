@@ -284,7 +284,8 @@ class CAI:  # pylint: disable=too-many-instance-attributes
             elif "deepseek" in create_params["model"]:
                 create_params.pop("parallel_tool_calls", None)
             else:
-                create_params["stream_options"] = {"include_usage": True}
+                if not "azure" in create_params["model"]:
+                    create_params["stream_options"] = {"include_usage": True}
             if not isinstance(agent, CodeAgent):  # Don't set temperature for CodeAgent  # noqa: E501
                 create_params["temperature"] = 0.7
         # Refer to https://docs.litellm.ai/docs/completion/json_mode
