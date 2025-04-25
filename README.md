@@ -56,6 +56,7 @@ A lightweight, ergonomic framework for building bug bounty-ready Cybersecurity A
   - [Motivation](#motivation)
     - [:bust\_in\_silhouette: Why CAI?](#bust_in_silhouette-why-cai)
     - [Ethical principles behind CAI](#ethical-principles-behind-cai)
+    - [Closed-source alternatives](#closed-source-alternatives)
   - [:nut\_and\_bolt: Install](#nut_and_bolt-install)
     - [OS X](#os-x)
     - [Ubuntu 24.04](#ubuntu-2404)
@@ -113,6 +114,16 @@ CAI is built on the following core principles:
   - **DeepSeek**: `DeepSeek V3`, `DeepSeek R1`
   - **Ollama**: `Qwen2.5 72B`, `Qwen2.5 14B`, etc
 
+
+### Closed-source alternatives
+Cybersecurity AI is a critical field, yet many groups are misguidedly pursuing it through closed-source methods for pure economic return, leveraging similar techniques and building upon existing closed-source (*often third-party owned*) models. This approach not only squanders valuable engineering resources but also represents an economic waste and results in redundant efforts, as they often end up reinventing the wheel. Here are some of the closed-source initiatives we keep track of and attempting to leverage genAI and agentic frameworks in cybersecurity AI:
+
+- [Runsybil](https://www.runsybil.com)
+- [Staris](https://staris.tech/)
+- [Terra Security](https://www.terra.security)
+- [XBOW](https://www.xbow.com)
+- [ZeroPath](https://www.zeropath.com)
+- [Zynap](https://www.zynap.com)
 
 
 ## :nut_and_bolt: Install
