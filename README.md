@@ -119,6 +119,7 @@ CAI is built on the following core principles:
 Cybersecurity AI is a critical field, yet many groups are misguidedly pursuing it through closed-source methods for pure economic return, leveraging similar techniques and building upon existing closed-source (*often third-party owned*) models. This approach not only squanders valuable engineering resources but also represents an economic waste and results in redundant efforts, as they often end up reinventing the wheel. Here are some of the closed-source initiatives we keep track of and attempting to leverage genAI and agentic frameworks in cybersecurity AI:
 
 - [Runsybil](https://www.runsybil.com)
+- [Sxipher](https://www.sxipher.com/) (seems discontinued)
 - [Staris](https://staris.tech/)
 - [Terra Security](https://www.terra.security)
 - [XBOW](https://www.xbow.com)
