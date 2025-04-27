@@ -241,8 +241,7 @@ sudo dpkg -i kali-archive-keyring_2024.1_all.deb && rm kali-archive-keyring_2024
 # Update APT repository
 sudo apt-get update
 
-# CAI requieres python 3.12, lets install it
-#CAI for kali
+# CAI requieres python 3.12, lets install it (CAI for kali in Android)
 sudo apt-get update && sudo apt-get install -y git python3-pip build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev wget libbz2-dev pkg-config
 wget https://www.python.org/ftp/python/3.12.4/Python-3.12.4.tar.xz
 tar xf Python-3.12.4.tar.xz
