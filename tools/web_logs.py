@@ -3,6 +3,10 @@ This script is used to create a web-based log analysis dashboard.
 It allows you to visualize the logs in different ways and see the PyPI download statistics.
 
 Usage:
+    # Show all logs
+    python tools/web_logs.py <(cat ./logs.txt)
+    
+    # Show last 10 logs and enable map
     python tools/web_logs.py --enable-map <(tail -n 10 ./logs.txt)
 """
 
@@ -26,6 +30,7 @@ import json
 import numpy as np
 from matplotlib.gridspec import GridSpec
 from matplotlib.dates import DateFormatter, MonthLocator, WeekdayLocator, DayLocator
+import re
 
 app = Flask(__name__)
 
@@ -162,46 +167,72 @@ class Visualizations:
 
 def parse_logs(file_path, parse_ips=False):
     logs = []
+    # Regex patterns for the three formats
+    # 1. Old: ...-cai_20250405_091537_root_linux_6.10.14-linuxkit_81_38_188_36.jsonl
+    old_pattern = re.compile(r"cai_(\d{8})_(\d{6})_([^_]+)_([^_]+)_([^_]+)_(\d+)_(\d+)_(\d+)_(\d+)\.jsonl$")
+    # 2. New: uuid_cai_uuid_20250426_054313_root_linux_6.12.13-amd64_177_91_253_204.jsonl
+    new_pattern = re.compile(r"([\w-]+)_cai_([\w-]+)_(\d{8})_(\d{6})_([^_]+)_([^_]+)_([^_]+)_([\d]+)_([\d]+)_([\d]+)_([\d]+)\.jsonl$")
+    # 3. Intermediate: logs/sessions/uuid/intermediate_20250422_222021.jsonl
+    intermediate_pattern = re.compile(r"intermediate_(\d{8})_(\d{6})\.jsonl$")
+
     with open(file_path, 'r') as file:
         for line in file:
             try:
                 parts = line.strip().split(None, 2)
                 if len(parts) != 3:
                     continue
-                
                 timestamp = parts[0] + ' ' + parts[1]
                 size = parts[2].split()[0]
                 filename = parts[2].split()[1] if len(parts[2].split()) > 1 else parts[2]
 
-                if 'cai_' not in filename:
+                # --- Old format ---
+                if 'cai_' in filename:
+                    # Try new format first
+                    m_new = new_pattern.search(filename)
+                    if m_new:
+                        # uuid_cai_uuid_YYYYMMDD_HHMMSS_user_system_version_ip.jsonl
+                        # Groups: 1=uuid1, 2=uuid2, 3=date, 4=time, 5=username, 6=system, 7=version, 8-11=ip
+                        username = m_new.group(5)
+                        system = m_new.group(6).lower()
+                        version = m_new.group(7)
+                        if 'microsoft' in system or 'wsl' in version.lower():
+                            system = 'windows'
+                        if parse_ips:
+                            ip_address = '.'.join([m_new.group(8), m_new.group(9), m_new.group(10), m_new.group(11)])
+                        else:
+                            ip_address = 'disabled'
+                        logs.append([timestamp, size, ip_address, system, username])
+                        continue
+                    # Try old format
+                    m_old = old_pattern.search(filename)
+                    if m_old:
+                        # Groups: 1=date, 2=time, 3=username, 4=system, 5=version, 6-9=ip
+                        username = m_old.group(3)
+                        system = m_old.group(4).lower()
+                        version = m_old.group(5)
+                        if 'microsoft' in system or 'wsl' in version.lower():
+                            system = 'windows'
+                        if parse_ips:
+                            ip_address = '.'.join([m_old.group(6), m_old.group(7), m_old.group(8), m_old.group(9)])
+                        else:
+                            ip_address = 'disabled'
+                        logs.append([timestamp, size, ip_address, system, username])
+                        continue
+                # --- Intermediate format ---
+                m_inter = intermediate_pattern.search(filename)
+                if m_inter:
+                    # Only date is relevant
+                    date_str = m_inter.group(1)
+                    time_str = m_inter.group(2)
+                    # Compose a timestamp from the extracted date/time
+                    ts = f"{date_str[:4]}-{date_str[4:6]}-{date_str[6:]} {time_str[:2]}:{time_str[2:4]}:{time_str[4:]}"
+                    logs.append([ts, size, 'disabled', 'unknown', 'unknown'])
                     continue
-
-                metadata = filename.split('cai_')[1].replace('.jsonl', '')
-                segments = metadata.split('_')
-
-                if len(segments) < 7:
-                    continue
-
-                username = segments[2]
-                system = segments[3].lower()
-                version = segments[4]
-
-                if 'microsoft' in system or 'wsl' in version.lower():
-                    system = 'windows'
-
-                # Only process IP if mapping is enabled
-                if parse_ips:
-                    ip_parts = segments[-4:]
-                    ip_address = '.'.join(ip_parts)
-                else:
-                    ip_address = 'disabled'  # Use placeholder when IP parsing is disabled
-
-                logs.append([timestamp, size, ip_address, system, username])
-
+                # If none matched, skip
+                continue
             except Exception as e:
                 print(f"Error parsing line: {line.strip()} -> {e}")
                 continue
-
     return logs
 
 def get_location(ip):
