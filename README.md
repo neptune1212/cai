@@ -63,6 +63,7 @@ A lightweight, ergonomic framework for building bug bounty-ready Cybersecurity A
     - [Ubuntu 24.04](#ubuntu-2404)
     - [Ubuntu 20.04](#ubuntu-2004)
     - [Windows WSL](#windows-wsl)
+    - [Android](#android)
     - [:nut\_and\_bolt: Setup `.env` file](#nut_and_bolt-setup-env-file)
     - [🔹 Custom OpenAI Base URL Support](#-custom-openai-base-url-support)
   - [:triangular\_ruler: Architecture:](#triangular_ruler-architecture)
@@ -197,7 +198,7 @@ echo -e 'OPENAI_API_KEY="sk-1234"\nANTHROPIC_API_KEY=""\nOLLAMA=""\nPROMPT_TOOLK
 cai  # first launch it can take up to 30 seconds
 ```
 
-### Windows WSL 
+### Windows WSL
 Go to the Microsoft page: https://learn.microsoft.com/en-us/windows/wsl/install. Here you will find all the instructions to install WSL
 
 From Powershell write: wsl --install
@@ -219,6 +220,51 @@ echo -e 'OPENAI_API_KEY="sk-1234"\nANTHROPIC_API_KEY=""\nOLLAMA=""\nPROMPT_TOOLK
 # Launch CAI
 cai  # first launch it can take up to 30 seconds
 ```
+
+### Android
+
+We recommend having at least 8 GB of RAM:
+
+1. First of all, install userland https://play.google.com/store/apps/details?id=tech.ula&hl=es
+
+2. Install Kali minimal in basic options (for free). [Or any other kali option if preferred]
+
+3. Update apt keys like in this example: https://superuser.com/questions/1644520/apt-get-update-issue-in-kali, inside UserLand's Kali terminal execute
+
+```bash
+# Get new apt keys
+wget http://http.kali.org/kali/pool/main/k/kali-archive-keyring/kali-archive-keyring_2024.1_all.deb
+
+# Install new apt keys
+sudo dpkg -i kali-archive-keyring_2024.1_all.deb && rm kali-archive-keyring_2024.1_all.deb
+
+# Update APT repository
+sudo apt-get update
+
+# CAI requieres python 3.12, lets install it
+#CAI for kali
+sudo apt-get update && sudo apt-get install -y git python3-pip build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev wget libbz2-dev pkg-config
+wget https://www.python.org/ftp/python/3.12.4/Python-3.12.4.tar.xz
+tar xf Python-3.12.4.tar.xz
+cd ./configure --enable-optimizations
+sudo make altinstall # This command takes long to execute
+
+# Clone CAI's source code
+git clone https://github.com/aliasrobotics/cai && cd cai
+
+# Create virtual environment
+python3.12 -m venv cai_env
+
+# Install the package from the local directory
+source cai_env/bin/activate && pip3 install -e .
+
+# Generate a .env file and set up
+cp .env.example .env  # edit here your keys/models
+
+# Launch CAI
+cai
+```
+
 
 ### :nut_and_bolt: Setup `.env` file
 
@@ -716,12 +762,12 @@ docker run --rm -it \
 ## FAQ
 <details><summary>OLLAMA is giving me 404 errors</summary>
 
-Ollama's API in OpenAI mode uses `/v1/chat/completions` whereas the `openai` library uses  `base_url` + `/chat/completions`. 
+Ollama's API in OpenAI mode uses `/v1/chat/completions` whereas the `openai` library uses  `base_url` + `/chat/completions`.
 
 We adopt the latter for overall alignment with the gen AI community and empower the former by allowing users to add the `v1` themselves via:
 
 ```bash
-OLLAMA_API_BASE=http://IP:PORT/v1 
+OLLAMA_API_BASE=http://IP:PORT/v1
 ```
 
 See the following issues that treat this topic in more detail:
