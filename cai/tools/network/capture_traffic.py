@@ -69,20 +69,28 @@ def capture_remote_traffic(ip, username, password, interface, capture_filter="",
         
         # Start a process to read from SSH and write to the FIFO
         def pipe_ssh_to_fifo():
-            with open(fifo_path, 'wb') as fifo:
-                while True:
-                    data = stdout.read(4096)
-                    if not data:
-                        break
-                    fifo.write(data)
-                    fifo.flush()
-        
+            try:
+                with open(fifo_path, 'wb') as fifo:
+                    while True:
+                        data = stdout.read(4096)
+                        if not data:
+                            break
+                        fifo.write(data)
+                        fifo.flush()
+            except (BrokenPipeError, OSError) as e:
+                print(f"Error in pipe_ssh_to_fifo: {str(e)}")
+            finally:
+                print("Closing FIFO due to error or completion.")
+
         import threading
         thread = threading.Thread(target=pipe_ssh_to_fifo, daemon=True)
         thread.start()
         
         print(f"Capture running. Data available at: {fifo_path}")
-        print(f"You can now use: tshark -r {fifo_path} [options]")
+        print(f"You can now use: tshark -r {fifo_path} -c 100 [options]")
+        
+        # Example usage in the context manager
+        subprocess.run(["tshark", "-r", fifo_path, "-c", "100", "-T", "fields", "-e", "ip.src"])
         
         return fifo_path
         
