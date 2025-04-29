@@ -93,6 +93,13 @@
         </div>
         {% endif %}
         
+        {% if ip_date_heatmap %}
+        <div class="plot-container">
+            <h2>Log Heatmap: Number of Logs per IP Address and Date</h2>
+            <img src="data:image/png;base64,{{ ip_date_heatmap }}" alt="Log Heatmap: Number of Logs per IP Address and Date">
+        </div>
+        {% endif %}
+        
         {% if pypi_plot %}
         <div class="plot-container">
             <h2>PyPI Download Statistics</h2>

@@ -31,6 +31,7 @@ import numpy as np
 from matplotlib.gridspec import GridSpec
 from matplotlib.dates import DateFormatter, MonthLocator, WeekdayLocator, DayLocator
 import re
+import seaborn as sns
 
 app = Flask(__name__)
 
@@ -135,11 +136,16 @@ class Visualizations:
             
         plt.figure(figsize=(12, 6))
         user_counts = self.df['username'].value_counts().head(20)
-        user_counts.plot(kind='bar')
+        ax = user_counts.plot(kind='bar')
         plt.title('Top 20 Most Active Users')
         plt.xlabel('Username')
         plt.ylabel('Number of Logs')
         plt.xticks(rotation=45)
+        
+        # Add the actual number on top of each bar
+        for i, count in enumerate(user_counts):
+            ax.text(i, count, str(count), ha='center', va='bottom')
+        
         plt.tight_layout()
         return self._get_plot_base64()
 
@@ -156,6 +162,67 @@ class Visualizations:
                 tooltip=row['username'],
             ).add_to(m)
         return m._repr_html_()
+
+    def create_ip_date_heatmap(self) -> Optional[str]:
+        # Only create if there are valid IPs (not 'disabled')
+        df = self.df[self.df['ip_address'] != 'disabled'].copy()
+        if df.empty:
+            return None
+        # Use only date part for columns now
+        df['date'] = df['timestamp'].dt.strftime('%Y-%m-%d')
+        # Pivot: rows=ip, columns=date, values=count
+        pivot = df.pivot_table(index='ip_address', columns='date', values='size', aggfunc='count', fill_value=0)
+        if pivot.empty:
+            return None
+        # Order IPs by total logs (descending)
+        ip_order = pivot.sum(axis=1).sort_values(ascending=True).index.tolist()
+        pivot = pivot.loc[ip_order]
+        # Get human-readable locations for each IP
+        ip_labels = []
+        #
+        # TODO: note API limits
+        # for ip in pivot.index:
+        #     loc = self._get_ip_location_label(ip)
+        #     ip_labels.append(f"{ip} ({loc})")
+        #
+        for ip in pivot.index:
+            ip_labels.append(ip)
+        plt.figure(figsize=(max(6, 0.5 * len(pivot.columns)), min(20, 1 + 0.5 * len(pivot.index))))
+        ax = plt.gca()
+        im = ax.imshow(pivot.values, aspect='auto', cmap='YlOrRd', origin='lower')
+        plt.colorbar(im, ax=ax, label='Number of Logs')
+        ax.set_xticks(range(len(pivot.columns)))
+        ax.set_xticklabels(pivot.columns, rotation=90, fontsize=8)
+        ax.set_yticks(range(len(ip_labels)))
+        ax.set_yticklabels(ip_labels, fontsize=8)
+        plt.title('Log Heatmap: Number of Logs per IP Address and Date')
+        plt.xlabel('Date')
+        plt.ylabel('IP Address (Location)')
+        plt.tight_layout()
+        return self._get_plot_base64()
+
+    def _get_ip_location_label(self, ip: str) -> str:
+        # Try to get city/country from ip-api.com
+        if ip in ("127.0.0.1", "localhost"):
+            return "Vitoria, Spain"
+        try:
+            response = requests.get(f"http://ip-api.com/json/{ip}", timeout=5)
+            data = response.json()
+            if response.status_code == 200 and data.get("status") == "success":
+                city = data.get("city", "")
+                country = data.get("country", "")
+                if city and country:
+                    return f"{city}, {country}"
+                elif country:
+                    return country
+        except Exception:
+            pass
+        # Fallback to lat/lon
+        try:
+            lat, lon = get_location(ip)
+            return f"{lat:.2f},{lon:.2f}"
+        except Exception:
+            return "Unknown"
 
     def _get_plot_base64(self) -> str:
         buf = io.BytesIO()
@@ -181,17 +248,19 @@ def parse_logs(file_path, parse_ips=False):
                 parts = line.strip().split(None, 2)
                 if len(parts) != 3:
                     continue
-                timestamp = parts[0] + ' ' + parts[1]
                 size = parts[2].split()[0]
                 filename = parts[2].split()[1] if len(parts[2].split()) > 1 else parts[2]
 
-                # --- Old format ---
+                # --- Old and New format ---
                 if 'cai_' in filename:
                     # Try new format first
                     m_new = new_pattern.search(filename)
                     if m_new:
                         # uuid_cai_uuid_YYYYMMDD_HHMMSS_user_system_version_ip.jsonl
-                        # Groups: 1=uuid1, 2=uuid2, 3=date, 4=time, 5=username, 6=system, 7=version, 8-11=ip
+                        # Groups: 3=date, 4=time, 5=username, 6=system, 7=version, 8-11=ip
+                        date_str = m_new.group(3)
+                        time_str = m_new.group(4)
+                        ts = f"{date_str[:4]}-{date_str[4:6]}-{date_str[6:]} {time_str[:2]}:{time_str[2:4]}:{time_str[4:]}"
                         username = m_new.group(5)
                         system = m_new.group(6).lower()
                         version = m_new.group(7)
@@ -201,12 +270,15 @@ def parse_logs(file_path, parse_ips=False):
                             ip_address = '.'.join([m_new.group(8), m_new.group(9), m_new.group(10), m_new.group(11)])
                         else:
                             ip_address = 'disabled'
-                        logs.append([timestamp, size, ip_address, system, username])
+                        logs.append([ts, size, ip_address, system, username])
                         continue
                     # Try old format
                     m_old = old_pattern.search(filename)
                     if m_old:
                         # Groups: 1=date, 2=time, 3=username, 4=system, 5=version, 6-9=ip
+                        date_str = m_old.group(1)
+                        time_str = m_old.group(2)
+                        ts = f"{date_str[:4]}-{date_str[4:6]}-{date_str[6:]} {time_str[:2]}:{time_str[2:4]}:{time_str[4:]}"
                         username = m_old.group(3)
                         system = m_old.group(4).lower()
                         version = m_old.group(5)
@@ -216,7 +288,7 @@ def parse_logs(file_path, parse_ips=False):
                             ip_address = '.'.join([m_old.group(6), m_old.group(7), m_old.group(8), m_old.group(9)])
                         else:
                             ip_address = 'disabled'
-                        logs.append([timestamp, size, ip_address, system, username])
+                        logs.append([ts, size, ip_address, system, username])
                         continue
                 # --- Intermediate format ---
                 m_inter = intermediate_pattern.search(filename)
@@ -432,7 +504,7 @@ def index():
     log_file = app.config['LOG_FILE']
     
     # Parse logs
-    logs = parse_logs(log_file)
+    logs = parse_logs(log_file, parse_ips=True)
     if not logs:
         return f"No logs were parsed. Please check if the file {log_file} exists and contains valid log entries."
     
@@ -447,6 +519,7 @@ def index():
         'logs_by_day': viz.create_daily_logs(),
         'logs_by_system': viz.create_system_distribution(),
         'active_users': viz.create_user_activity(),
+        'ip_date_heatmap': viz.create_ip_date_heatmap(),
         'config': app.config['VIZ_CONFIG']
     }
     
