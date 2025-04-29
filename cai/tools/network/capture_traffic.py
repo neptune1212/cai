@@ -90,7 +90,7 @@ def capture_remote_traffic(ip, username, password, interface, capture_filter="",
         print(f"You can now use: tshark -r {fifo_path} -c 100 [options]")
         
         # Example usage in the context manager
-        subprocess.run(["tshark", "-r", fifo_path, "-c", "100", "-T", "fields", "-e", "ip.src"])
+        subprocess.run(["tshark", "-r", fifo_path, "-c", "100"])
         
         return fifo_path
         
