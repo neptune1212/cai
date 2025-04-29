@@ -18,6 +18,11 @@ ACTIVE_SESSIONS = {}
 def _get_workspace_dir() -> str:
     """Determines the target workspace directory based on env vars for host."""
     # This function is for the HOST perspective. Container path is separate.
+    
+    # When CTF_INSIDE is true, always use root directory
+    if os.getenv('CTF_INSIDE', "true").lower() == "true":
+        return "/"
+        
     base_dir_env = os.getenv("CAI_WORKSPACE_DIR")
     workspace_name = os.getenv("CAI_WORKSPACE")
 
@@ -65,7 +70,12 @@ def _get_workspace_dir() -> str:
 
 def _get_container_workspace_path() -> str:
     """Determines the target workspace path inside the container."""
-    workspace_name = os.getenv("CAI_WORKSPACE") # Removed default here
+    workspace_name = os.getenv("CAI_WORKSPACE")
+    ctf_inside = os.getenv('CTF_INSIDE', "true").lower() == "true"
+
+    # When CTF_INSIDE is true, always use root directory
+    if ctf_inside:
+        return "/"
 
     if workspace_name:
         # Basic validation - allow alphanumeric, underscore, hyphen
