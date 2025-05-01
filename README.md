@@ -29,6 +29,8 @@
 [![Linux](https://img.shields.io/badge/Linux-Supported-brightgreen?logo=linux&logoColor=white)](https://github.com/aliasrobotics/cai)
 [![OS X](https://img.shields.io/badge/OS%20X-Supported-brightgreen?logo=apple&logoColor=white)](https://github.com/aliasrobotics/cai)
 [![Windows](https://img.shields.io/badge/Windows-Supported-brightgreen?logo=windows&logoColor=white)](https://github.com/aliasrobotics/cai)
+![Discord](https://img.shields.io/discord/1359128560526168224?label=Discord&logo=discord&color=7289DA)
+
 
 
 </div>
@@ -73,6 +75,7 @@ A lightweight, ergonomic framework for building bug bounty-ready Cybersecurity A
     - [🔹 Human-In-The-Loop (HITL)](#-human-in-the-loop-hitl)
   - [:rocket: Quickstart](#rocket-quickstart)
     - [Environment Variables](#environment-variables)
+    - [OpenRouter Integration](#openrouter-integration)
     - [MCP](#mcp)
   - [Development](#development)
     - [Contributions](#contributions)
@@ -584,6 +587,19 @@ For using private models, you are given a [`.env.example`](.env.example) file. C
 
 </details>
 
+### OpenRouter Integration
+
+The Cybersecurity AI (CAI) platform offers seamless integration with OpenRouter, a unified interface for Large Language Models (LLMs). This integration is crucial for users who wish to leverage advanced AI capabilities in their cybersecurity tasks. OpenRouter acts as a bridge, allowing CAI to communicate with various LLMs, thereby enhancing the flexibility and power of the AI agents used within CAI.
+
+To enable OpenRouter support in CAI, you need to configure your environment by adding specific entries to your `.env` file. This setup ensures that CAI can interact with the OpenRouter API, facilitating the use of sophisticated models like Meta-LLaMA. Here’s how you can configure it:
+
+```bash
+CAI_AGENT_TYPE=redteam_agent
+CAI_MODEL=openrouter/meta-llama/llama-4-maverick
+OPENROUTER_API_KEY=<sk-your-key>  # note, add yours
+OPENROUTER_API_BASE=https://openrouter.ai/api/v1
+```
+
 ### MCP
 
 CAI supports the Model Context Protocol (MCP) for integrating external tools and services with AI agents. MCP is supported via two transport mechanisms:
@@ -689,6 +705,23 @@ docker run --rm -it \
 
 
 ## FAQ
+<details><summary>OLLAMA is giving me 404 errors</summary>
+
+Ollama's API in OpenAI mode uses `/v1/chat/completions` whereas the `openai` library uses  `base_url` + `/chat/completions`. 
+
+We adopt the latter for overall alignment with the gen AI community and empower the former by allowing users to add the `v1` themselves via:
+
+```bash
+OLLAMA_API_BASE=http://IP:PORT/v1 
+```
+
+See the following issues that treat this topic in more detail:
+- https://github.com/aliasrobotics/cai/issues/76
+- https://github.com/aliasrobotics/cai/issues/83
+- https://github.com/aliasrobotics/cai/issues/82
+
+</details>
+
 <details><summary>Where are all the caiextensions?</summary>
 
 See [all caiextensions](https://gitlab.com/aliasrobotics/alias_research/caiextensions)
