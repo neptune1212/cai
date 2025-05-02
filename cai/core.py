@@ -181,6 +181,8 @@ class CAI:  # pylint: disable=too-many-instance-attributes
         # load env variables
         load_dotenv()
 
+        # Set OpenAI API base URL
+        self.openai_base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
         openai_api_key = os.getenv("OPENAI_API_KEY")
         if not openai_api_key:
             os.environ["OPENAI_API_KEY"] = "sk-proj-1234567890"
@@ -275,6 +277,7 @@ class CAI:  # pylint: disable=too-many-instance-attributes
             "model": model_override or agent.model,
             "messages": messages,
             "stream": stream,
+            "api_base": self.openai_base_url,  # Use custom base URL
         }
         if tools:
             create_params["tools"] = tools
