@@ -64,6 +64,7 @@ A lightweight, ergonomic framework for building bug bounty-ready Cybersecurity A
     - [Ubuntu 20.04](#ubuntu-2004)
     - [Windows WSL](#windows-wsl)
     - [:nut\_and\_bolt: Setup `.env` file](#nut_and_bolt-setup-env-file)
+    - [🔹 Custom OpenAI Base URL Support](#-custom-openai-base-url-support)
   - [:triangular\_ruler: Architecture:](#triangular_ruler-architecture)
     - [🔹 Agent](#-agent)
     - [🔹 Tools](#-tools)
@@ -231,6 +232,14 @@ CAI does NOT provide API keys for any model by default. Don't ask us to provide 
 
 The OPENAI_API_KEY must not be left blank. It should contain either "sk-123" (as a placeholder) or your actual API key. See https://github.com/aliasrobotics/cai/issues/27.
 
+### 🔹 Custom OpenAI Base URL Support
+
+CAI now supports configuring a custom OpenAI API base URL via the `OPENAI_BASE_URL` environment variable. This allows users to redirect API calls to a custom endpoint, such as a proxy or self-hosted OpenAI-compatible service. If not set, the default URL `https://api.openai.com/v1` is used.
+
+Example `.env` configuration:
+```bash
+OPENAI_BASE_URL="https://custom-openai-proxy.com/v1"
+```
 
 ## :triangular_ruler: Architecture:
 
