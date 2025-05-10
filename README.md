@@ -67,6 +67,7 @@ A lightweight, ergonomic framework for building bug bounty-ready Cybersecurity A
     - [Windows WSL](#windows-wsl)
     - [Android](#android)
     - [:nut\_and\_bolt: Setup `.env` file](#nut_and_bolt-setup-env-file)
+    - [🔹 Custom OpenAI Base URL Support](#-custom-openai-base-url-support)
   - [:triangular\_ruler: Architecture:](#triangular_ruler-architecture)
     - [🔹 Agent](#-agent)
     - [🔹 Tools](#-tools)
