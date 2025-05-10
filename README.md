@@ -281,6 +281,20 @@ CAI does NOT provide API keys for any model by default. Don't ask us to provide 
 The OPENAI_API_KEY must not be left blank. It should contain either "sk-123" (as a placeholder) or your actual API key. See https://github.com/aliasrobotics/cai/issues/27.
 
 
+### 🔹 Custom OpenAI Base URL Support
+
+CAI supports configuring a custom OpenAI API base URL via the `OPENAI_BASE_URL` environment variable. This allows users to redirect API calls to a custom endpoint, such as a proxy or self-hosted OpenAI-compatible service.
+
+Example `.env` entry configuration:
+```
+OLLAMA_API_BASE="https://custom-openai-proxy.com/v1"
+```
+
+Or directly from the command line:
+```bash
+OLLAMA_API_BASE="https://custom-openai-proxy.com/v1" cai
+```
+
 ## :triangular_ruler: Architecture:
 
 CAI focuses on making cybersecurity agent **coordination** and **execution** lightweight, highly controllable, and useful for humans. To do so it builds upon 7 pillars: `Agent`s, `Tools`, `Handoffs`, `Patterns`, `Turns`, `Tracing` and `HITL`.
