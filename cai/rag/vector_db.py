@@ -97,13 +97,9 @@ class QdrantConnector:
                 if not api_key:
                     # Generate a random API key if none is provided
                     api_key = str(uuid.uuid4())
-                
-                # Get the custom OpenAI base URL from the environment variable
-                base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
-                
                 self._openai_client = openai.Client(
                     api_key=api_key,
-                    base_url=base_url  # Use the custom base URL
+                    base_url="https://api.openai.com/v1"
                 )
         else:
             if self._model is None:
