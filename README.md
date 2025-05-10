@@ -129,6 +129,7 @@ Cybersecurity AI is a critical field, yet many groups are misguidedly pursuing i
 - [Sxipher](https://www.sxipher.com/) (seems discontinued)
 - [Staris](https://staris.tech/)
 - [Terra Security](https://www.terra.security)
+- [Xint](https://xint.io/)
 - [XBOW](https://www.xbow.com)
 - [ZeroPath](https://www.zeropath.com)
 - [Zynap](https://www.zynap.com)
