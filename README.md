@@ -44,7 +44,7 @@ A lightweight, ergonomic framework for building bug bounty-ready Cybersecurity A
 
 
 > [!WARNING]
-> :warning: CAI is in active development, so don't expect it to work flawlessly. Instead, contribute by raising an issue or sending an MR.
+> :warning: CAI is in active development, so don't expect it to work flawlessly. Instead, contribute by raising an issue or [sending a PR](https://github.com/aliasrobotics/cai/pulls).
 >
 > Access to this library and the use of information, materials (or portions thereof), is **<u>not intended</u>, and is <u>prohibited</u>, where such access or use violates applicable laws or regulations**. By no means the authors encourage or promote the unauthorized tampering with running systems. This can cause serious human harm and material damages.
 >
