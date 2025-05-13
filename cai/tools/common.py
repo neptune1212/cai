@@ -19,8 +19,7 @@ def _get_workspace_dir() -> str:
     """Determines the target workspace directory based on env vars for host."""
     # This function is for the HOST perspective. Container path is separate.
     
-    # When CTF_INSIDE is true, always use root directory
-    if os.getenv('CTF_INSIDE', "true").lower() == "true":
+    if os.getenv('CTF_INSIDE', "false").lower() == "true":
         return "/"
         
     base_dir_env = os.getenv("CAI_WORKSPACE_DIR")
