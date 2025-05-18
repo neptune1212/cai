@@ -942,6 +942,16 @@ Currently, CAI supports text based information. You can add any extra informatio
 **How?** By adding it to the system ([`system_master_template.md`](cai/repl/templates/system_master_template.md)) or the user prompt ([`user_master_template.md`](cai/repl/templates/user_master_template.md)). You can always directly prompt the path to the model, and it will ```cat``` it.
 </details>
 
+<details>
+<summary>How can I access Ollama running on Windows from cai running on WSL?</summary>
+If you're running **Ollama on a Windows host** and want to access it from cai inside **WSL**, follow these steps:
+
+1. **Allow inbound traffic on port `11434` in Windows Firewall**:  
+   Run in PowerShell as Administrator:
+   New-NetFirewallRule -DisplayName "Allow Ollama Port 11434" -Direction Inbound -LocalPort 11434 -Protocol TCP -Action Allow
+2. **Enable port forwarding from 0.0.0.0 to localhost**:
+    netsh interface portproxy add v4tov4 listenport=11434 listenaddress=0.0.0.0 connectport=11434 connectaddress=127.0.0.1
+</details> 
 
 
 ## Citation
