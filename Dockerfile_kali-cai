@@ -3,11 +3,19 @@ FROM kalilinux/kali-rolling
 
 # Update and install dependencies
 RUN apt-get update && \
-    apt-get install -y git python3-pip python3-venv && \
+    apt-get install -y git python3-pip python3-venv sudo && \
     apt-get install -y kali-linux-headless
 
+# Create a new user named 'kali' with password 'kali' and add it to the sudo group
+RUN useradd -m kali && \
+    echo "kali:kali" | chpasswd && \
+    usermod -aG sudo kali
+
+# Switch to the 'kali' user
+USER kali
+
 # Create virtual environment
-RUN python3 -m venv cai
+RUN python3 -m venv /home/kali/cai
 SHELL ["/bin/bash", "-c"]
 
 # Create a directory for the application
@@ -17,8 +25,8 @@ WORKDIR /app
 COPY . /app/
 
 # Install the package from the local directory
-RUN source /cai/bin/activate && \
+RUN source /home/kali/cai/bin/activate && \
     pip install -e /app
 
 # Set the default command to activate the virtual environment
-CMD ["/bin/bash", "-c", "source /cai/bin/activate && bash"]
+CMD ["/bin/bash", "-c", "source /home/kali/cai/bin/activate && bash"]
